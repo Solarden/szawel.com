@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="description" content="Independent backend engineering consulting services."/>
+    <title>szawel.com — Backend Engineering Consulting</title>
+    <style>
+        :root {
+            --bg: #0b0c10;
+            --card: #12141b;
+            --text: #e8eaf0;
+            --muted: #a8adbd;
+            --line: #24283a;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5
+        }
+
+        a {
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(232, 234, 240, .25)
+        }
+
+        a:hover {
+            border-bottom-color: rgba(232, 234, 240, .6)
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 40px 18px
+        }
+
+        .hero {
+            display: grid;
+            gap: 18px;
+            padding: 28px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: linear-gradient(180deg, var(--card), rgba(18, 20, 27, .6))
+        }
+
+        .kicker {
+            color: var(--muted);
+            font-size: 14px;
+            letter-spacing: .08em;
+            text-transform: uppercase
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+            letter-spacing: -.02em
+        }
+
+        .lead {
+            margin: 0;
+            color: var(--muted);
+            font-size: 16px;
+            max-width: 70ch
+        }
+
+        .cta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, .02)
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .06)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns:repeat(12, 1fr);
+            gap: 16px;
+            margin-top: 18px
+        }
+
+        .card {
+            grid-column: span 12;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(18, 20, 27, .55)
+        }
+
+        @media (min-width: 820px) {
+            .card {
+                grid-column: span 6
+            }
+        }
+
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted)
+        }
+
+        li {
+            margin: 6px 0
+        }
+
+        .note {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px dashed rgba(168, 173, 189, .35);
+            color: var(--muted);
+            background: rgba(18, 20, 27, .35)
+        }
+
+        footer {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted)
+        }
+    </style>
+</head>
+<body>
+<main class="wrap">
+    <section class="hero">
+        <div class="kicker">Independent Contractor • EU</div>
+        <h1>Backend Engineering Consulting</h1>
+        <p class="lead">
+            Service-based consulting and delivery support for backend systems: APIs, data services,
+            architecture reviews, and cloud infrastructure guidance.
+        </p>
+        <div class="cta">
+            <a class="btn" href="mailto:contact@szawel.com">
+                ✉️ <span>contact@szawel.com</span>
+            </a>
+            <a class="btn" href="#services">🛠️ <span>Services</span></a>
+            <a class="btn" href="#contact">🤝 <span>Contact</span></a>
+        </div>
+        <div class="note">
+            Engagements are provided as independent consulting services (scope & deliverables agreed in writing).
+        </div>
+    </section>
+
+    <section id="services" class="grid" aria-label="Services">
+        <div class="card">
+            <h2>Service areas</h2>
+            <ul>
+                <li>Backend engineering consulting and implementation services</li>
+                <li>API design (REST/GraphQL) and service architecture</li>
+                <li>Data systems design and performance optimization</li>
+                <li>Search/indexing solutions (e.g., OpenSearch/Elasticsearch)</li>
+                <li>Cloud infrastructure advisory (AWS)</li>
+                <li>Security-conscious handling of sensitive data</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Typical deliverables</h2>
+            <ul>
+                <li>Architecture reviews and technical recommendations</li>
+                <li>Production-ready services/APIs with documentation</li>
+                <li>Monitoring/logging setup guidance</li>
+                <li>Operational support within agreed scope</li>
+                <li>Testing strategy and implementation support</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>How I work</h2>
+            <ul>
+                <li>Remote-first, async-friendly collaboration</li>
+                <li>Scope and priorities agreed with stakeholders</li>
+                <li>Clear written summaries of recommendations and decisions</li>
+                <li>Focused on measurable outcomes and reliability</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Availability</h2>
+            <p class="small">
+                Limited slots. Short discovery call to confirm fit, scope, and timelines.
+            </p>
+            <p class="small">
+                Preferred: monthly service package or defined deliverable-based engagements.
+            </p>
+        </div>
+    </section>
+
+    <section id="contact" class="card" style="margin-top:16px">
+        <h2>Contact</h2>
+        <p class="lead" style="margin-top:6px">
+            Email is the fastest way to reach me:
+            <a href="mailto:contact@szawel.com">contact@szawel.com</a>
+        </p>
+        <p class="small">
+            <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank" rel="noopener">LinkedIn</a> |
+            <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+        </p>
+    </section>
+
+    <footer>
+        <div>
+            Services provided by <strong>SOLARDEN PAWEŁ CHRACZYŃSKI</strong>, registered business in Poland (EU).
+        </div>
+        <div class="small">
+            © <span id="y"></span> szawel.com
+        </div>
+    </footer>
+</main>
+
+<script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
