@@ -1,0 +1,42 @@
+[project]
+name = "szawel-game"
+version = "0.1.0"
+description = "Server-authoritative area-control game widget for szawel.com"
+requires-python = ">=3.13"
+# Empty on purpose: the rules core is pure stdlib — no I/O, no framework, no clock.
+dependencies = []
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.50.0",
+]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "pre-commit>=4.0",
+    # fastapi.testclient's transport, needed from the moment there is a socket to test.
+    "httpx>=0.28",
+]
+
+[tool.uv]
+# Nothing here ships as a wheel — the server runs from a checkout on the box, the
+# client is static files. A virtual project needs no build backend.
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+src = ["."]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI uses callables in argument defaults by design.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+]

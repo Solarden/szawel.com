@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # SHAs, not tags — setup-uv publishes no floating major past v7.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      # --locked, not a bare sync: a stale uv.lock must fail CI rather than be
+      # quietly re-resolved on the runner.
+      - run: uv sync --locked --extra dev --extra server
+
+      # The only leak check that still fires after a --no-verify commit, or on a
+      # clone where the hooks were never installed.
+      - run: uv run pre-commit run gitleaks --all-files
+
+      - run: uv run ruff check .
+
+      - run: uv run ruff format --check .
+
+      - name: pytest
+        # Guarded on the directory, not on pytest's exit 5: once the tree exists, a
+        # suite that collects nothing must fail.
+        run: |
+          if [ -d game/tests ]; then
+            uv run pytest
+          else
+            echo "no test tree yet"
+          fi
