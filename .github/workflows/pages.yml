@@ -26,12 +26,6 @@ jobs:
       # tag would run new code with the credentials that publish the live site.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Keeps Pages in workflow mode, so the setting cannot drift back to a branch
-      # build and start publishing the whole repo root again.
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-        with:
-          enablement: true
-
       - name: Assemble the published site
         # Only what the site actually serves. The server, the tests and the tooling
         # stay readable on GitHub without being fetchable under the domain.
