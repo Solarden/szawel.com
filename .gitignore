@@ -1,1 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Editors / OS
 .idea/
+.DS_Store
+
+# --- szawel.com ---
+# Public portfolio surface, and GitHub Pages serves part of it. Everything below is
+# local to a checkout and is not committed.
+internal_docs
+.claude/
+CLAUDE.md
+.githooks/
+
+# The server reads its config from outside the checkout.
+.env
