@@ -19,7 +19,9 @@
     OCCUPIED: 'already owned',
     NOT_YOUR_TURN: "opponent's turn",
     GAME_OVER: 'match is decided',
-    PROTOCOL: 'not a valid command'
+    PROTOCOL: 'not a valid command',
+    DISABLED: 'not accepting new matches',
+    AT_CAPACITY: 'too many matches in progress'
   };
 
   var endpoint = new URL('/ws/play', location.href);
@@ -33,6 +35,8 @@
   var pending = new Map();
   var live = false;
   var closed = false;
+  var seated = false;
+  var declined = null;
 
   // Every line below is written by something that happened. Nothing is on a timer.
 
@@ -213,6 +217,7 @@
     metric('mPay', BYTES.encode(event.data).length, 'B');
 
     if (message.type === 'WELCOME') {
+      seated = true;
       remember(message);
       legal = new Set(message.legal_moves);
       presence(message.clients);
@@ -250,6 +255,12 @@
       // A refused move gets no STATE, so nothing else would ever retire its timer.
       pending.delete(message.seq);
 
+      // Refused before ever being seated is the server declining the session rather than a
+      // move, and the close that follows is its doing — not the server dying under us.
+      if (!seated) {
+        declined = message.reason;
+      }
+
       // A malformed frame is refused without ever being a move, so the event column
       // must not claim it was one.
       var aMove = message.tile != null;
@@ -273,14 +284,15 @@
 
     closed = true;
     live = false;
-    // A highlight is a claim about what the server would accept, and there is no server now.
+    // A highlight is a claim about what the server would accept, and nothing is asking it now.
     legal = new Set();
     tiles.forEach(function (tile) { tile.classList.remove('legal'); });
     el('led').classList.add('off');
     el('connTxt').textContent = 'disconnected';
     boardEl.classList.add('inert');
-    line('client', 'SOCKET', '—',
-      'CLOSED — the server is gone, and this client has no rules to carry on with');
+    line('client', 'SOCKET', '—', declined
+      ? 'CLOSED — the server declined the session: ' + declined
+      : 'CLOSED — the server is gone, and this client has no rules to carry on with');
   }
 
   function connect() {

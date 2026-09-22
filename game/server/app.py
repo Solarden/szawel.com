@@ -7,6 +7,7 @@ the decision of who a message is allowed to be belong here.
 import asyncio
 import hashlib
 import json
+import os
 import time
 from enum import Enum, auto
 from pathlib import Path
@@ -36,11 +37,20 @@ _HERE = Path(__file__).resolve().parent
 DEV_PAGE = _HERE / "dev.html"
 CLIENT_DIR = _HERE.parent / "client"
 
+# Stat'd per HELLO, never cached: the switch is a file precisely so that `touch` and `rm` take
+# effect without a restart.
+#
+# A blank reads as unset because Path("") is Path("."), which exists — so blanking the value in an
+# EnvironmentFile would switch the site off permanently and silently.
+DISABLED_FLAG = Path(os.environ.get("PLAY_DISABLED_FILE", "").strip() or "/var/lib/play/disabled")
+
 
 class Transport(Enum):
     """Refusals the engine cannot express, because `rules.py` must not know a socket exists."""
 
     PROTOCOL = auto()
+    DISABLED = auto()
+    AT_CAPACITY = auto()
 
 
 # No /docs, /redoc or /openapi.json: they describe the one route this app serves and would
@@ -51,6 +61,13 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.get("/")
 async def dev_page() -> FileResponse:
     return FileResponse(DEV_PAGE)
+
+
+@app.get("/health")
+async def health() -> dict:
+    # 200 while disabled too. The switch is deliberate, and a watcher that pages on a
+    # deliberate switch is a watcher you learn to ignore.
+    return {"ok": True, "disabled": DISABLED_FLAG.exists(), "matches": matches.count()}
 
 
 app.mount("/client", StaticFiles(directory=CLIENT_DIR), name="client")
@@ -227,10 +244,25 @@ async def play(socket: WebSocket) -> None:
 
             if kind == "HELLO" and match is None:
                 match = matches.get(message.get("match_id"), message.get("player_token"))
+
+                # Both switches refuse only a new match. The resume above has already run,
+                # and ending a game in progress is what neither of them is for.
                 if match is None:
+                    if DISABLED_FLAG.exists():
+                        await _send(socket, _rejected(Transport.DISABLED))
+
+                        break
+
                     match = matches.create()
 
+                    if match is None:
+                        await _send(socket, _rejected(Transport.AT_CAPACITY))
+
+                        break
+
                 match.sockets.add(socket)
+                # Paired with the decrement in `finally`; `Match.holders` says why it exists.
+                match.holders += 1
                 matches.touch(match)
                 await _send(
                     socket,
@@ -258,6 +290,7 @@ async def play(socket: WebSocket) -> None:
 
     finally:
         if match is not None:
+            match.holders -= 1
             match.sockets.discard(socket)
             # The idle clock starts when the last socket leaves, not at the last message.
             matches.touch(match)
