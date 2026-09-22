@@ -125,15 +125,12 @@
 
     state.terrain.forEach(function (_, index) {
       var tile = document.createElement('div');
-      // A div with a click handler is unreachable without a mouse, and the board is the whole
-      // game. Literal values only: nothing server-supplied reaches an attribute here.
+      // A div with a click handler is unreachable without a mouse, and the board is the game.
       tile.setAttribute('role', 'button');
       tile.tabIndex = 0;
       tile.appendChild(span('dot', ''));
       tile.addEventListener('click', function () { move(index); });
       tile.addEventListener('keydown', function (event) {
-        // What the reader pressed, not where it sits on the board — a tile is activated the
-        // way any button is, and that is the layout-aware field.
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           move(index);
@@ -144,8 +141,7 @@
     });
   }
 
-  // Ownership and terrain are painted, and the two sides sit 1.89:1 apart in luminance —
-  // nothing to a red-green colour blind reader. This is that same state in words.
+  // The board says whose a tile is in colour; this says it in words.
   function describe(state, index, owner) {
     var place = 'row ' + (Math.floor(index / state.cols) + 1)
       + ' column ' + (index % state.cols + 1) + ', ';
@@ -170,6 +166,7 @@
       tiles[index].className = 'tile ' + state.terrain[index]
         + (owner ? ' ' + owner : '')
         + (legal.has(index) ? ' legal' : '');
+      // describe() composes literals and integers, so no server string reaches an attribute.
       tiles[index].setAttribute('aria-label', describe(state, index, owner));
     });
 

@@ -62,8 +62,8 @@ body {
 
 .widget {
   display: grid;
-  /* The console takes the larger share and the widget takes more width than the page's
-     prose column: one log line is ~81ch, and below this it goes back to scrolling sideways. */
+  /* The console takes the larger share, and the widget more width than the page's prose
+     column: one log line is ~81ch. */
   grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
   border: 1px solid var(--line2);
   border-radius: 8px;
@@ -98,9 +98,8 @@ body {
 .tile.legal { border-color: rgba(182, 255, 58, .45); box-shadow: inset 0 0 0 1px rgba(182, 255, 58, .12) }
 .tile.you { background: linear-gradient(145deg, #9be028, #c6ff52); border-color: #d8ff7a; box-shadow: 0 0 14px -4px var(--you) }
 .tile.server { background: linear-gradient(145deg, #e9722c, #ff9a52); border-color: #ffb07a; box-shadow: 0 0 14px -4px var(--server) }
-/* The mark is the second channel. Your tiles and the opponent's sit 1.89:1 apart in
-   luminance, so hue is doing all the work until the dot distinguishes them: round for you,
-   square for the opponent, a bar for water, a small dim dot for a free tile. */
+/* The second channel. Your tiles and the opponent's sit 1.89:1 apart in luminance, so hue
+   is doing all the work until the dot's shape tells them apart. */
 .tile .dot { position: absolute; inset: 0; margin: auto; width: 5px; height: 5px; border-radius: 99px; background: var(--dimmer) }
 .tile.you .dot, .tile.server .dot { width: 7px; height: 7px; background: rgba(0, 0, 0, .55) }
 .tile.server .dot { border-radius: 2px }
@@ -130,8 +129,8 @@ body {
 .metric .ml { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-top: 2px }
 .metric.lag .mn { color: var(--cyan) }
 
-/* One grid column, so the header is exactly as wide as the rows. A plain 1fr works only
-   because the outcome wraps: no row outgrows the panel, so nothing scrolls sideways. */
+/* One grid column, so the header is exactly as wide as the rows. A plain 1fr rather than
+   max-content, which would size this to the widest row instead of letting it wrap. */
 .logwrap { border: 1px solid var(--line); border-radius: var(--radius); background: #070a09; height: 232px; overflow-y: auto; font-size: 13px; display: grid; grid-template-columns: 1fr; align-content: start }
 .logwrap::-webkit-scrollbar { width: 6px; height: 6px }
 .logwrap::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 9px }
@@ -149,8 +148,8 @@ body {
 .ln.client .ac { color: var(--you) }
 .ln.ai .ac { color: var(--server) }
 .ln.server .ac { color: var(--cyan) }
-/* The only cell allowed to wrap. At the widget's own width nothing does; below it the gloss
-   folds onto a second row instead of pushing the line into a sideways scroll. */
+/* The only cell allowed to wrap, and the reason nothing in this panel scrolls sideways: a
+   gloss with no room left folds onto a second row rather than widening the line. */
 .ln .ou { white-space: normal }
 .ln .ou.rejected, .ln .ou.closed { color: var(--server) }
 .ln .ou.accepted { color: var(--cyan); opacity: .85 }
@@ -163,8 +162,8 @@ body {
 @keyframes slidein { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
 @keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
 
-/* Stacks well before it has to: side by side, the console's fixed columns stop fitting below
-   about 1050px and the log goes back to scrolling sideways. Full width, they fit again. */
+/* Stacks well before it has to: side by side, the console's fixed columns stop fitting
+   below about 1050px. Full width, they fit again. */
 @media (max-width: 1080px) {
   .widget { grid-template-columns: minmax(0, 1fr) }
   .pane.left { border-right: 0; border-bottom: 1px solid var(--line) }
