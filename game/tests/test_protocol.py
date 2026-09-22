@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import json
 import os
 import subprocess
@@ -49,6 +51,18 @@ def hello(socket, match_id=None, player_token=None) -> dict:
     return socket.receive_json()
 
 
+def envelope(welcome, **command) -> dict:
+    """What a client sends: the body, signed exactly as it goes on the wire."""
+    body = json.dumps(command)
+    signature = hmac.new(bytes.fromhex(welcome["session_key"]), body.encode(), hashlib.sha256)
+
+    return {"body": body, "sig": signature.hexdigest()}
+
+
+def move(socket, welcome, tile, seq=1) -> None:
+    socket.send_json(envelope(welcome, type="MOVE", tile=tile, seq=seq))
+
+
 def drain(socket, wanted) -> dict:
     """Read until `wanted` says this is the message, or fail naming everything that came first."""
     seen = []
@@ -82,13 +96,15 @@ def presence(socket) -> dict:
     return drain(socket, lambda m: m["type"] == "STATE" and m["last"] is None)
 
 
-def play_out(socket) -> dict:
+def play_out(socket, welcome) -> dict:
     """Take the first legal tile until the match ends, and return the OVER message."""
-    message = hello(socket)
+    message = welcome
+    seq = 0
 
     while message["type"] != "OVER":
+        seq += 1
         # Driven from the server's own hint: it is the only thing the client is told.
-        socket.send_json({"type": "MOVE", "tile": message["legal_moves"][0], "seq": 1})
+        move(socket, welcome, message["legal_moves"][0], seq)
         message = settle(socket)
 
     return message
@@ -96,7 +112,7 @@ def play_out(socket) -> dict:
 
 def test_a_match_plays_through_to_a_result(client):
     with client.websocket_connect("/ws/play") as socket:
-        over = play_out(socket)
+        over = play_out(socket, hello(socket))
         scores = over["scores"]
         expected = None if scores["you"] == scores["server"] else max(scores, key=scores.get)
 
@@ -115,8 +131,8 @@ def test_a_match_plays_through_to_a_result(client):
 )
 def test_a_refused_move_comes_back_with_its_reason(client, tile, expected):
     with client.websocket_connect("/ws/play") as socket:
-        hello(socket)
-        socket.send_json({"type": "MOVE", "tile": tile, "seq": 7})
+        welcome = hello(socket)
+        move(socket, welcome, tile, seq=7)
 
         assert socket.receive_json() == {
             "type": "REJECTED",
@@ -128,14 +144,16 @@ def test_a_refused_move_comes_back_with_its_reason(client, tile, expected):
 
 def test_a_move_after_the_result_is_refused_rather_than_ignored(client):
     with client.websocket_connect("/ws/play") as socket:
-        play_out(socket)
-        socket.send_json({"type": "MOVE", "tile": 0, "seq": 99})
+        welcome = hello(socket)
+        play_out(socket, welcome)
+        # Above every seq the play-out spent, so the envelope passes it to the rules.
+        move(socket, welcome, 0, seq=99)
 
         assert socket.receive_json()["reason"] == "GAME_OVER"
 
 
 @pytest.mark.parametrize(
-    "move",
+    "command",
     [
         {"tile": "3", "seq": 1},
         {"tile": 3.0, "seq": 1},
@@ -147,10 +165,11 @@ def test_a_move_after_the_result_is_refused_rather_than_ignored(client):
         {"tile": 1, "seq": {"nested": "object"}},
     ],
 )
-def test_a_move_that_is_not_two_integers_is_the_transport_layers_problem(client, move):
+def test_a_move_that_is_not_two_integers_is_the_transport_layers_problem(client, command):
+    # Signed, so the shape is the only thing left to refuse it on.
     with client.websocket_connect("/ws/play") as socket:
-        hello(socket)
-        socket.send_json({"type": "MOVE", **move})
+        welcome = hello(socket)
+        socket.send_json(envelope(welcome, type="MOVE", **command))
 
         assert socket.receive_json()["reason"] == "PROTOCOL"
 
@@ -159,12 +178,12 @@ def test_a_move_before_hello_is_refused(client):
     with client.websocket_connect("/ws/play") as socket:
         socket.send_json({"type": "MOVE", "tile": 1, "seq": 4})
 
-        # Quoted back, so a client can attribute the refusal to the command that earned it.
+        # Refused for being unsigned before anything asks whether there is a match to move in.
         assert socket.receive_json() == {
             "type": "REJECTED",
-            "reason": "PROTOCOL",
-            "tile": 1,
-            "seq": 4,
+            "reason": "MISSING_ENVELOPE",
+            "tile": None,
+            "seq": None,
         }
 
 
@@ -180,19 +199,114 @@ def test_a_binary_frame_is_refused_and_leaves_the_socket_usable(client):
 
 
 @pytest.mark.parametrize(
-    "text",
+    ("text", "expected"),
     [
-        '{"type": "WHAT"}',
-        "not json at all",
-        "[]",
-        "[" * 100_000,
+        # A frame that parses is asked for its envelope before anyone asks what it claims to be.
+        ('{"type": "WHAT"}', "MISSING_ENVELOPE"),
+        ("not json at all", "PROTOCOL"),
+        ("[]", "PROTOCOL"),
+        ("[" * 100_000, "PROTOCOL"),
     ],
 )
-def test_a_message_the_protocol_does_not_define_is_refused(client, text):
+def test_a_message_the_protocol_does_not_define_is_refused(client, text, expected):
     with client.websocket_connect("/ws/play") as socket:
         socket.send_text(text)
 
-        assert socket.receive_json()["reason"] == "PROTOCOL"
+        assert socket.receive_json()["reason"] == expected
+
+
+def test_a_replayed_envelope_is_refused_the_second_time(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        replayed = envelope(welcome, type="MOVE", tile=welcome["legal_moves"][0], seq=1)
+        socket.send_json(replayed)
+        settle(socket)
+        socket.send_json(replayed)
+
+        assert socket.receive_json()["reason"] == "REPLAYED_NONCE"
+
+
+def test_a_sequence_number_that_does_not_advance_is_refused(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        move(socket, welcome, welcome["legal_moves"][0], seq=5)
+        board = settle(socket)
+        move(socket, welcome, board["legal_moves"][0], seq=5)
+
+        assert socket.receive_json()["reason"] == "REPLAYED_NONCE"
+
+
+def test_a_tampered_body_does_not_verify(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        forged = envelope(welcome, type="MOVE", tile=welcome["legal_moves"][0], seq=1)
+        forged["body"] = forged["body"].replace('"seq": 1', '"seq": 2')
+        socket.send_json(forged)
+
+        assert socket.receive_json() == {
+            "type": "REJECTED",
+            "reason": "BAD_SIGNATURE",
+            "tile": None,
+            "seq": None,
+        }
+
+
+def test_the_signature_is_checked_before_the_sequence(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        move(socket, welcome, welcome["legal_moves"][0], seq=1)
+        settle(socket)
+        stale = envelope(welcome, type="MOVE", tile=0, seq=1)
+        socket.send_json({**stale, "sig": "0" * 64})
+
+        assert socket.receive_json()["reason"] == "BAD_SIGNATURE"
+
+
+@pytest.mark.parametrize(
+    ("body", "signature"),
+    [
+        ('{"type": "MOVE", "tile": 1, "seq": 1}', "not hex"),
+        ('{"type": "MOVE", "tile": 1, "seq": 1}', ""),
+        # Both halves survive JSON and neither survives compare_digest: a signature that is not
+        # ASCII raises there, and a body that is not encodable raises before it.
+        ('{"type": "MOVE", "tile": 1, "seq": 1}', "\ud800" * 64),
+        ("\ud800", "0" * 64),
+    ],
+)
+def test_a_frame_that_cannot_be_verified_is_refused_rather_than_raising(client, body, signature):
+    with client.websocket_connect("/ws/play") as socket:
+        hello(socket)
+        socket.send_text(json.dumps({"body": body, "sig": signature}))
+
+        assert socket.receive_json()["reason"] == "BAD_SIGNATURE"
+
+
+def test_the_key_belongs_to_the_connection_and_not_to_the_match(client):
+    with client.websocket_connect("/ws/play") as first:
+        welcome = hello(first)
+
+        with client.websocket_connect("/ws/play") as second:
+            joined = hello(second, welcome["match_id"], welcome["player_token"])
+            presence(first)
+            # The other socket's key on this one: same match, and it still does not verify.
+            move(second, welcome, welcome["legal_moves"][0])
+
+            assert joined["session_key"] != welcome["session_key"]
+            assert second.receive_json()["reason"] == "BAD_SIGNATURE"
+
+
+def test_a_resume_mints_a_new_key_rather_than_reusing_the_old_one(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+    with client.websocket_connect("/ws/play") as socket:
+        resumed = hello(socket, welcome["match_id"], welcome["player_token"])
+
+    # The match survives the socket, the key does not — and the two answer different questions,
+    # so they are never the same string either.
+    assert resumed["match_id"] == welcome["match_id"]
+    assert resumed["session_key"] != welcome["session_key"]
+    assert resumed["session_key"] != resumed["player_token"]
 
 
 def test_the_two_rejection_taxonomies_cannot_collide_on_the_wire():
@@ -203,7 +317,7 @@ def test_the_mover_is_taken_from_the_socket_and_not_from_the_message(client):
     with client.websocket_connect("/ws/play") as socket:
         welcome = hello(socket)
         tile = welcome["legal_moves"][0]
-        socket.send_json({"type": "MOVE", "tile": tile, "seq": 1, "player": "server"})
+        socket.send_json(envelope(welcome, type="MOVE", tile=tile, seq=1, player="server"))
 
         assert socket.receive_json()["last"] == {"by": "you", "tile": tile, "seq": 1}
 
@@ -211,7 +325,7 @@ def test_the_mover_is_taken_from_the_socket_and_not_from_the_message(client):
 def test_a_reconnect_resumes_the_same_match(client):
     with client.websocket_connect("/ws/play") as socket:
         welcome = hello(socket)
-        socket.send_json({"type": "MOVE", "tile": welcome["legal_moves"][0], "seq": 1})
+        move(socket, welcome, welcome["legal_moves"][0])
         settle(socket)
 
     with client.websocket_connect("/ws/play") as socket:
@@ -253,10 +367,11 @@ def test_two_sockets_on_one_match_both_see_the_move(client):
         welcome = hello(first)
 
         with client.websocket_connect("/ws/play") as second:
-            hello(second, welcome["match_id"], welcome["player_token"])
+            joined = hello(second, welcome["match_id"], welcome["player_token"])
             assert first.receive_json()["clients"] == 2
 
-            second.send_json({"type": "MOVE", "tile": welcome["legal_moves"][0], "seq": 1})
+            # Signed with the joiner's own key: the match is shared, the session key is not.
+            move(second, joined, welcome["legal_moves"][0])
 
             assert first.receive_json()["last"]["by"] == "you"
             assert second.receive_json()["last"]["by"] == "you"
@@ -278,7 +393,7 @@ def test_two_sockets_on_one_match_print_the_same_digest(client):
 def test_the_digest_moves_when_the_state_does(client):
     with client.websocket_connect("/ws/play") as socket:
         welcome = hello(socket)
-        socket.send_json({"type": "MOVE", "tile": welcome["legal_moves"][0], "seq": 1})
+        move(socket, welcome, welcome["legal_moves"][0])
 
         assert socket.receive_json()["digest"] != welcome["digest"]
 
@@ -291,7 +406,7 @@ def test_the_players_state_arrives_before_the_opponent_thinks(client, monkeypatc
     with client.websocket_connect("/ws/play") as socket:
         welcome = hello(socket)
         started = time.perf_counter()
-        socket.send_json({"type": "MOVE", "tile": welcome["legal_moves"][0], "seq": 1})
+        move(socket, welcome, welcome["legal_moves"][0])
         mine = socket.receive_json()
         round_trip = time.perf_counter() - started
         theirs = socket.receive_json()

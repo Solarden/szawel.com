@@ -61,6 +61,11 @@
     <div class="note">
         <p>This demo keeps a match id in your browser so you can pick a game back up. No cookies,
             no analytics, nothing about you leaves your machine.</p>
+        <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
+            connection and hands to this page, and carries a counter the server will not accept
+            twice. You can read that key in devtools &mdash; so the envelope protects the
+            <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
+            illegal moves, and nothing else.</p>
         <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
             same match in a second tab and both print the same digest. It is not a security
             control &mdash; the server computes it and the client prints it.</p>
