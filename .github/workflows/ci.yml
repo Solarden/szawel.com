@@ -31,12 +31,4 @@ jobs:
 
       - run: uv run ruff format --check .
 
-      - name: pytest
-        # Guarded on the directory, not on pytest's exit 5: once the tree exists, a
-        # suite that collects nothing must fail.
-        run: |
-          if [ -d game/tests ]; then
-            uv run pytest
-          else
-            echo "no test tree yet"
-          fi
+      - run: uv run pytest
