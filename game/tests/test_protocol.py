@@ -1,5 +1,9 @@
 import json
+import os
+import subprocess
+import sys
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,6 +24,15 @@ def an_empty_registry():
 def without_the_thinking_pause(monkeypatch):
     # The pause is a game-design choice, not a delay under test, and a full match holds 34.
     monkeypatch.setattr(server, "AI_PAUSE_SECONDS", 0)
+
+
+@pytest.fixture
+def kill_switch(tmp_path, monkeypatch):
+    """The flag path the server will stat, not yet touched. `touch` and `unlink` it in the test."""
+    flag = tmp_path / "disabled"
+    monkeypatch.setattr(server, "DISABLED_FLAG", flag)
+
+    return flag
 
 
 @pytest.fixture
@@ -298,3 +311,109 @@ def test_an_idle_match_with_nobody_connected_is_swept(client):
         resumed = hello(socket, welcome["match_id"], welcome["player_token"])
 
     assert resumed["match_id"] != welcome["match_id"]
+
+
+def test_the_kill_switch_refuses_a_new_match(client, kill_switch):
+    kill_switch.touch()
+
+    with client.websocket_connect("/ws/play") as socket:
+        refusal = hello(socket)
+
+    assert refusal["reason"] == "DISABLED"
+
+
+def test_the_kill_switch_lets_a_match_already_running_resume(client, kill_switch):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+    kill_switch.touch()
+
+    with client.websocket_connect("/ws/play") as socket:
+        resumed = hello(socket, welcome["match_id"], welcome["player_token"])
+
+    assert resumed["match_id"] == welcome["match_id"]
+
+
+def test_removing_the_flag_re_enables_without_a_restart(client, kill_switch):
+    kill_switch.touch()
+
+    with client.websocket_connect("/ws/play") as socket:
+        refused = hello(socket)
+
+    kill_switch.unlink()
+
+    with client.websocket_connect("/ws/play") as socket:
+        allowed = hello(socket)
+
+    assert (refused["type"], allowed["type"]) == ("REJECTED", "WELCOME")
+
+
+def test_the_cap_refuses_once_every_match_has_a_socket(client, monkeypatch):
+    monkeypatch.setattr(matches, "MAX_MATCHES", 1)
+
+    with client.websocket_connect("/ws/play") as held:
+        hello(held)
+
+        with client.websocket_connect("/ws/play") as turned_away:
+            refusal = hello(turned_away)
+
+    assert refusal["reason"] == "AT_CAPACITY"
+
+
+def test_a_full_registry_evicts_a_match_nobody_is_connected_to(client, monkeypatch):
+    monkeypatch.setattr(matches, "MAX_MATCHES", 1)
+
+    with client.websocket_connect("/ws/play") as socket:
+        abandoned = hello(socket)
+
+    with client.websocket_connect("/ws/play") as socket:
+        fresh = hello(socket)
+
+    assert fresh["type"] == "WELCOME"
+    assert fresh["match_id"] != abandoned["match_id"]
+
+
+@pytest.mark.parametrize("switched_off", [False, True])
+def test_health_reports_the_kill_switch_rather_than_failing_on_it(
+    client, kill_switch, switched_off
+):
+    if switched_off:
+        kill_switch.touch()
+
+    answer = client.get("/health")
+
+    assert answer.status_code == 200
+    assert answer.json()["disabled"] is switched_off
+
+
+@pytest.mark.parametrize("blanked", ["", "   "])
+def test_a_blanked_env_value_reads_as_unset_rather_than_breaking_the_box(blanked):
+    # Import-time config, so proving it needs a real import in a real process.
+    proof = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from game.server import app, matches;print(matches.MAX_MATCHES, app.DISABLED_FLAG)",
+        ],
+        env={**os.environ, "PLAY_MAX_MATCHES": blanked, "PLAY_DISABLED_FILE": blanked},
+        cwd=Path(__file__).resolve().parent.parent.parent,
+        capture_output=True,
+        text=True,
+    )
+
+    assert proof.returncode == 0, proof.stderr
+    assert proof.stdout.split() == ["200", "/var/lib/play/disabled"]
+
+
+@pytest.mark.parametrize("refused", ["0", "-1"])
+def test_a_cap_below_one_is_refused_at_import_rather_than_silently_applied(refused):
+    proof = subprocess.run(
+        [sys.executable, "-c", "from game.server import matches"],
+        env={**os.environ, "PLAY_MAX_MATCHES": refused},
+        cwd=Path(__file__).resolve().parent.parent.parent,
+        capture_output=True,
+        text=True,
+    )
+
+    assert proof.returncode != 0
+    assert "PLAY_MAX_MATCHES must be at least 1" in proof.stderr

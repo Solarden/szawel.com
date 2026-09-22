@@ -4,6 +4,7 @@ Nothing here knows the rules — it stores a `GameState` and never asks it anyth
 """
 
 import asyncio
+import os
 import random
 import secrets
 import time
@@ -13,6 +14,17 @@ from game.rules import GameState, new_game
 
 # Generous on purpose: this timer is the one that can delete a match someone is still using.
 IDLE_SECONDS = 30 * 60
+
+# Every HELLO without a resumable token mints a match, and nothing authenticates a HELLO.
+#
+# A blank reads as unset, because int("") would take the box down over a value someone commented
+# out. A non-blank value that is not a number still raises: "20O" is a typo to be told about.
+MAX_MATCHES = int(os.environ.get("PLAY_MAX_MATCHES", "").strip() or "200")
+
+if MAX_MATCHES < 1:
+    # Zero reads as "no limit" to anyone setting it, and does the opposite: every visitor is
+    # refused while /health still answers ok, which looks nothing like a misconfiguration.
+    raise ValueError(f"PLAY_MAX_MATCHES must be at least 1, got {MAX_MATCHES}")
 
 
 @dataclass(slots=True)
@@ -24,12 +36,45 @@ class Match:
     sockets: set = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     last_seen: float = field(default_factory=time.monotonic)
+    # Handlers currently running against this match. Not derivable from `sockets`: a broadcast
+    # drops a socket it cannot reach, so the set empties while that socket's handler is still
+    # between awaits holding the match. Deleting it there would orphan a live handler.
+    holders: int = 0
 
 
 _matches: dict[str, Match] = {}
 
 
-def create() -> Match:
+def count() -> int:
+    return len(_matches)
+
+
+def _unheld(match: Match) -> bool:
+    """Nobody connected and no handler running — the one predicate both removals may use."""
+    return not match.sockets and not match.holders
+
+
+def _evict_least_recently_seen() -> bool:
+    """Drop the idlest unheld match; False when every match is still in use.
+
+    Without it the cap is a weapon: filling the table with open sockets denies everyone else a
+    game, and costs an attacker less than the memory exhaustion the cap exists to stop.
+    """
+    idle = [match for match in _matches.values() if _unheld(match)]
+
+    if not idle:
+        return False
+
+    del _matches[min(idle, key=lambda match: match.last_seen).id]
+
+    return True
+
+
+def create() -> Match | None:
+    """A new match, or None when every slot holds a match someone is still connected to."""
+    if count() >= MAX_MATCHES and not _evict_least_recently_seen():
+        return None
+
     match = Match(
         id=secrets.token_urlsafe(8),
         player_token=secrets.token_urlsafe(16),
@@ -67,5 +112,5 @@ def sweep() -> None:
     cutoff = time.monotonic() - IDLE_SECONDS
 
     for match_id, match in list(_matches.items()):
-        if not match.sockets and match.last_seen < cutoff:
+        if _unheld(match) and match.last_seen < cutoff:
             del _matches[match_id]
