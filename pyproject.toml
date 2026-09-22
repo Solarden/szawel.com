@@ -13,6 +13,9 @@ server = [
 ]
 dev = [
     "pytest>=8.3",
+    # A socket test that waits for a message the server stopped sending hangs rather than
+    # fails, and CI has no way to tell the two apart.
+    "pytest-timeout>=2.3",
     "ruff>=0.8",
     "pre-commit>=4.0",
     # fastapi.testclient's transport, needed from the moment there is a socket to test.
@@ -26,6 +29,9 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["game"]
+# Generous: the whole suite runs in well under a second, so this only ever catches a hang.
+timeout = 10
 
 [tool.ruff]
 line-length = 100

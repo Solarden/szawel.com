@@ -1,0 +1,122 @@
+/* Widget only. The page around it — nav, copy, calls to action — belongs to the landing page. */
+:root {
+  --bg: #0a0d0c;
+  --bg2: #0f1413;
+  --panel: #101614;
+  --line: rgba(255, 255, 255, .07);
+  --line2: rgba(255, 255, 255, .12);
+  --ink: #e9efe9;
+  --dim: #6c7a72;
+  --dimmer: #46524c;
+  --you: #b6ff3a;
+  --server: #ff8a42;
+  --cyan: #54d8ff;
+  --tile: #161d1a;
+  --tile-hi: #1e2723;
+  --valuable: #142019;
+  --water: #0c1c24;
+  --radius: 4px;
+  /* No CDN link anywhere: the stack falls back to what the machine has until these are
+     self-hosted. */
+  --mono: ui-monospace, 'IBM Plex Mono', monospace;
+  --disp: system-ui, 'Bricolage Grotesque', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0 }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 40px 22px }
+
+.widget {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg2), var(--bg));
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, .9);
+}
+
+.pane { padding: 22px }
+.pane.left { border-right: 1px solid var(--line) }
+.pane.right { background: linear-gradient(180deg, rgba(84, 216, 255, .03), transparent 30%), var(--panel) }
+.paneTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px }
+.paneLabel { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim) }
+
+.board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; aspect-ratio: 8/6 }
+
+.tile {
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--tile);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform .12s, background .2s, border-color .2s;
+  animation: pop .5s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Only a tile that could still be taken, and only its background: an owned or water tile
+   carries information hover must not repaint, and the border belongs to legality. */
+.board:not(.inert) .tile:not(.you):not(.server):not(.water):hover { background: var(--tile-hi); transform: translateY(-1px) }
+.tile.valuable { background: var(--valuable) }
+.tile.water { background: var(--water); cursor: not-allowed; border-color: rgba(84, 216, 255, .10) }
+.tile.legal { border-color: rgba(182, 255, 58, .45); box-shadow: inset 0 0 0 1px rgba(182, 255, 58, .12) }
+.tile.you { background: linear-gradient(145deg, #9be028, #c6ff52); border-color: #d8ff7a; box-shadow: 0 0 14px -4px var(--you) }
+.tile.server { background: linear-gradient(145deg, #e9722c, #ff9a52); border-color: #ffb07a; box-shadow: 0 0 14px -4px var(--server) }
+.tile .dot { position: absolute; inset: 0; margin: auto; width: 5px; height: 5px; border-radius: 99px; background: var(--dimmer) }
+.tile.you .dot, .tile.server .dot, .tile.water .dot { display: none }
+
+/* The socket is gone or the game is decided: the board stops pretending it is interactive. */
+.board.inert .tile { cursor: default; opacity: .55 }
+
+.stats { display: flex; gap: 22px; margin-top: 18px; align-items: flex-end }
+.stat { display: flex; flex-direction: column; gap: 2px }
+.stat .n { font-family: var(--disp); font-weight: 800; font-size: 30px; line-height: 1; letter-spacing: -.02em }
+.stat.you .n { color: var(--you) }
+.stat.server .n { color: var(--server) }
+.stat .l { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim) }
+.turnpill { margin-left: auto; font-size: 12px; color: var(--dim); border: 1px solid var(--line2); padding: 6px 12px; border-radius: 99px }
+.turnpill b { color: var(--ink) }
+
+.conn { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); margin-bottom: 4px }
+.led { width: 7px; height: 7px; border-radius: 99px; background: var(--you); box-shadow: 0 0 8px var(--you); animation: blink 2s infinite }
+.led.off { background: var(--dimmer); box-shadow: none; animation: none }
+.endpoint { font-size: 11.5px; color: var(--cyan); opacity: .8; word-break: break-all; margin-bottom: 16px }
+
+.metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px }
+.metric { border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 10px; background: rgba(0, 0, 0, .25) }
+.metric .mn { font-family: var(--disp); font-weight: 700; font-size: 19px; letter-spacing: -.02em }
+.metric .mn small { font-size: 11px }
+.metric .ml { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-top: 2px }
+.metric.lag .mn { color: var(--cyan) }
+
+.logwrap { border: 1px solid var(--line); border-radius: var(--radius); background: #070a09; height: 208px; overflow: hidden }
+.loghead { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--dimmer); padding: 8px 11px; border-bottom: 1px solid var(--line) }
+.log { padding: 8px 11px; font-size: 11.5px; display: flex; flex-direction: column; gap: 3px; overflow: auto; height: calc(208px - 33px) }
+.log::-webkit-scrollbar { width: 6px }
+.log::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 9px }
+
+.ln { display: flex; gap: 7px; animation: slidein .3s ease both; white-space: nowrap }
+.ln .ts { color: var(--dimmer) }
+.ln .ar { color: var(--dim) }
+.ln.you .ar { color: var(--you) }
+.ln.server .ar { color: var(--server) }
+.ln.sync { color: var(--cyan); opacity: .85 }
+.ln.bad { color: var(--server) }
+
+@keyframes pop { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: scale(1) } }
+@keyframes slidein { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
+@keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+
+@media (max-width: 780px) {
+  .widget { grid-template-columns: minmax(0, 1fr) }
+  .pane.left { border-right: 0; border-bottom: 1px solid var(--line) }
+}

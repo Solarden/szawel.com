@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>territory — local host page</title>
+    <link rel="stylesheet" href="/client/widget.css"/>
+</head>
+<body>
+<div class="wrap">
+    <div class="widget">
+        <div class="pane left">
+            <div class="paneTop">
+                <div class="paneLabel">// territory.client</div>
+            </div>
+            <div class="board inert" id="board"></div>
+            <div class="stats">
+                <div class="stat you">
+                    <div class="n" id="sYou">&mdash;</div>
+                    <div class="l">you</div>
+                </div>
+                <div class="stat server">
+                    <div class="n" id="sServer">&mdash;</div>
+                    <div class="l">server&nbsp;AI</div>
+                </div>
+                <div class="turnpill">turn <b id="turn">&mdash;</b></div>
+            </div>
+        </div>
+
+        <div class="pane right">
+            <div class="paneTop">
+                <div class="paneLabel">// game.server &nbsp;&mdash;&nbsp; rt log</div>
+            </div>
+            <div class="conn"><span class="led off" id="led"></span><span id="connTxt">connecting</span></div>
+            <div class="endpoint" id="endpoint">&mdash;</div>
+            <div class="metrics">
+                <div class="metric lag">
+                    <div class="mn" id="mLag">&mdash;</div>
+                    <div class="ml">turn latency</div>
+                </div>
+                <div class="metric">
+                    <div class="mn" id="mSrv">&mdash;</div>
+                    <div class="ml">server time</div>
+                </div>
+                <div class="metric">
+                    <div class="mn" id="mPay">&mdash;</div>
+                    <div class="ml">payload</div>
+                </div>
+            </div>
+            <div class="logwrap">
+                <div class="loghead">event stream</div>
+                <div class="log" id="log"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/client/widget.js"></script>
+</body>
+</html>
