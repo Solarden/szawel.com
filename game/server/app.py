@@ -6,9 +6,12 @@ the decision of who a message is allowed to be belong here.
 
 import asyncio
 import hashlib
+import hmac
 import json
 import os
+import secrets
 import time
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 
@@ -51,6 +54,55 @@ class Transport(Enum):
     PROTOCOL = auto()
     DISABLED = auto()
     AT_CAPACITY = auto()
+    MISSING_ENVELOPE = auto()
+    BAD_SIGNATURE = auto()
+    REPLAYED_NONCE = auto()
+
+
+@dataclass(slots=True)
+class Session:
+    """The transport session: a key minted for this connection, and the nonce it has reached.
+
+    Deliberately not the match session. `player_token` answers which player you are and outlives
+    the socket; this answers whether a command is authentic and fresh, and dies with it. Two tabs
+    on one match are two connections holding two different keys.
+    """
+
+    key: bytes = field(default_factory=lambda: secrets.token_bytes(32))
+    last_seq: int = 0
+
+    def open(self, message: dict) -> dict | Transport:
+        """The signed command inside the envelope, or the reason it is not one."""
+        body, signature = message.get("body"), message.get("sig")
+
+        if type(body) is not str or type(signature) is not str:
+            return Transport.MISSING_ENVELOPE
+
+        # The bytes the client hashed, not a re-serialisation of them: the body crosses as an
+        # opaque string, so the outer parse hands back exactly what was signed.
+        signed = body.encode(errors="surrogatepass")  # strict raises on a lone surrogate
+        expected = hmac.new(self.key, signed, hashlib.sha256).hexdigest()
+
+        # isascii first: compare_digest refuses a string that is not one, and a hex digest is.
+        if not signature.isascii() or not hmac.compare_digest(expected, signature):
+            return Transport.BAD_SIGNATURE
+
+        # Parsed only now, so a forged signature costs one hash — and the counter below is never
+        # read out of a frame that did not verify.
+        try:
+            command = json.loads(body)
+        except (ValueError, RecursionError):
+            return Transport.PROTOCOL
+
+        if not isinstance(command, dict) or type(command.get("seq")) is not int:
+            return Transport.PROTOCOL
+
+        if command["seq"] <= self.last_seq:
+            return Transport.REPLAYED_NONCE
+
+        self.last_seq = command["seq"]
+
+        return command
 
 
 # No /docs, /redoc or /openapi.json: they describe the one route this app serves and would
@@ -176,11 +228,11 @@ async def _broadcast(match: matches.Match, message: dict, skip: WebSocket | None
 
 
 async def _handle_move(match: matches.Match, socket: WebSocket, message: dict) -> None:
-    tile, seq = message.get("tile"), message.get("seq")
+    # `Session.open` has already required seq to be an integer, because the replay check needed it.
+    tile, seq = message.get("tile"), message["seq"]
 
-    # Neither is safe raw: the engine raises on a tile that is not an integer, and seq is
-    # echoed to every other socket with nothing else bounding what a client may send.
-    if type(tile) is not int or type(seq) is not int:  # not isinstance: bool subclasses int
+    # The engine raises on a tile that is not an integer.
+    if type(tile) is not int:  # not isinstance: bool subclasses int
         await _send(socket, _rejected(Transport.PROTOCOL, tile=tile, seq=seq))
 
         return
@@ -230,6 +282,7 @@ async def _handle_move(match: matches.Match, socket: WebSocket, message: dict) -
 async def play(socket: WebSocket) -> None:
     await socket.accept()
     matches.sweep()
+    session = Session()
     match: matches.Match | None = None
 
     try:
@@ -270,19 +323,33 @@ async def play(socket: WebSocket) -> None:
                         "type": "WELCOME",
                         "match_id": match.id,
                         "player_token": match.player_token,
+                        "session_key": session.key.hex(),
                         **_view(match),
                     },
                 )
                 # The others learn the client count changed; the joiner just had it in WELCOME.
                 await _broadcast(match, _state_message(match), skip=socket)
 
-            elif kind == "MOVE" and match is not None:
-                await _handle_move(match, socket, message)
+                continue
+
+            # Everything after the handshake is signed. HELLO above is the one command that
+            # cannot be: the key it answers with did not exist when it was sent.
+            opened = session.open(message)
+
+            if isinstance(opened, Transport):
+                # Quoted back: nothing. Only the replay check has a seq it could stand behind,
+                # and one shape beats a field that comes and goes.
+                await _send(socket, _rejected(opened))
+
+                continue
+
+            if opened.get("type") == "MOVE" and match is not None:
+                await _handle_move(match, socket, opened)
 
             else:
                 await _send(
                     socket,
-                    _rejected(Transport.PROTOCOL, tile=message.get("tile"), seq=message.get("seq")),
+                    _rejected(Transport.PROTOCOL, tile=opened.get("tile"), seq=opened["seq"]),
                 )
 
     except WebSocketDisconnect:

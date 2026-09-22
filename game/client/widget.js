@@ -21,13 +21,20 @@
     GAME_OVER: 'match is decided',
     PROTOCOL: 'not a valid command',
     DISABLED: 'not accepting new matches',
-    AT_CAPACITY: 'too many matches in progress'
+    AT_CAPACITY: 'too many matches in progress',
+    MISSING_ENVELOPE: 'command was not signed',
+    BAD_SIGNATURE: 'signature did not verify',
+    REPLAYED_NONCE: 'command already seen'
   };
 
   var endpoint = new URL('/ws/play', location.href);
   endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 
   var socket = null;
+  var signer = null;
+  // Signing is async, so the sends queue on this: two quick clicks must reach the socket in
+  // click order, or the lower seq arrives second and the server reads it as a replay.
+  var sending = Promise.resolve();
   var tiles = [];
   var legal = new Set();
   var seq = 0;
@@ -180,17 +187,73 @@
     boardEl.classList.toggle('inert', state.over || !live);
   }
 
-  // Every click is sent. The browser decides nothing — highlighting is a hint, not a gate,
-  // and an illegal click earns a reason code from the server, which is the thing on show.
+  function hex(buffer) {
+    return Array.from(new Uint8Array(buffer), function (byte) {
+      return byte.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  // The key is readable right here, which is the limit the note under the widget states: this
+  // protects the session, not against the player.
+  function arm(key) {
+    if (!crypto.subtle) {
+      line('client', 'KEY', 'session', 'UNAVAILABLE — signing needs https or localhost');
+
+      return;
+    }
+
+    if (typeof key !== 'string') {
+      line('client', 'KEY', 'session', 'MISSING — the server sent nothing to sign with');
+
+      return;
+    }
+
+    var raw = Uint8Array.from(key.match(/../g), function (pair) { return parseInt(pair, 16); });
+
+    crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+      .then(function (imported) {
+        signer = imported;
+        line('client', 'KEY', 'session', 'ARMED — HMAC-SHA-256, this connection only');
+      });
+  }
+
+  // Nothing here judges a click: highlighting is a hint, not a gate, and an illegal click earns
+  // a reason code from the server, which is the thing on show.
   function move(index) {
     if (!live) {
       return;
     }
 
+    if (!signer) {
+      line('client', 'MOVE', 'tile=' + index, 'NOT SENT — no session key to sign with');
+
+      return;
+    }
+
     seq += 1;
-    pending.set(seq, performance.now());
-    socket.send(JSON.stringify({ type: 'MOVE', tile: index, seq: seq }));
-    line('client', 'MOVE', 'tile=' + index, '→ sent');
+    var mine = seq;
+    // Built once and sent as it stands: the signature is over these exact bytes, and
+    // re-serialising them anywhere would change them.
+    var body = JSON.stringify({ type: 'MOVE', tile: index, seq: mine });
+
+    sending = sending.then(function () {
+      return crypto.subtle.sign('HMAC', signer, BYTES.encode(body));
+    }).then(function (signature) {
+      // Checked here, not at the click: signing is async, and send() on a socket that closed
+      // in the meantime buffers in silence rather than throwing.
+      if (socket.readyState !== WebSocket.OPEN) {
+        throw new Error('the socket closed while the command was being signed');
+      }
+
+      // Started here rather than at the click, so the tile keeps measuring a round-trip.
+      pending.set(mine, performance.now());
+      socket.send(JSON.stringify({ body: body, sig: hex(signature) }));
+      line('client', 'MOVE', 'tile=' + index, '→ signed, sent');
+    }).catch(function () {
+      // A chain left rejected drops every later click in silence.
+      pending.delete(mine);
+      line('client', 'MOVE', 'tile=' + index, 'DROPPED — nothing reached the server');
+    });
   }
 
   // Two lines out of one STATE frame, each carrying a measurement of its own — how long the
@@ -219,6 +282,7 @@
     if (message.type === 'WELCOME') {
       seated = true;
       remember(message);
+      arm(message.session_key);
       legal = new Set(message.legal_moves);
       presence(message.clients);
       render(message.state);
