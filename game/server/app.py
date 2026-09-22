@@ -5,6 +5,7 @@ the decision of who a message is allowed to be belong here.
 """
 
 import asyncio
+import hashlib
 import json
 import time
 from enum import Enum, auto
@@ -55,9 +56,23 @@ async def dev_page() -> FileResponse:
 app.mount("/client", StaticFiles(directory=CLIENT_DIR), name="client")
 
 
+def _digest(state: dict) -> str:
+    """A short fingerprint of the state as it goes out, so two tabs can be compared by eye.
+
+    Not a security control: the server computes it and the client prints it. What it catches
+    is a client showing a stale board.
+    """
+    canonical = json.dumps(state, sort_keys=True, separators=(",", ":"))
+
+    return hashlib.sha256(canonical.encode()).hexdigest()[:8]
+
+
 def _view(match: matches.Match) -> dict:
+    state = to_dict(match.state)
+
     return {
-        "state": to_dict(match.state),
+        "state": state,
+        "digest": _digest(state),
         "legal_moves": sorted(legal_moves(match.state, Player.YOU)),
         "clients": len(match.sockets),
     }

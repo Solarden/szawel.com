@@ -29,6 +29,8 @@ jobs:
       - name: Assemble the published site
         # Only what the site actually serves. The server, the tests and the tooling
         # stay readable on GitHub without being fetchable under the domain.
+        # game/client is copied whole, fonts/ included — an explicit file list here
+        # would 404 the webfonts silently.
         run: |
           mkdir -p _site
           cp index.html _site/
