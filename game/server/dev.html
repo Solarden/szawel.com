@@ -13,8 +13,8 @@
             <div class="paneTop">
                 <div class="paneLabel">// territory.client</div>
             </div>
-            <div class="board inert" id="board"></div>
-            <div class="stats">
+            <div class="board inert" id="board" role="group" aria-label="game board"></div>
+            <div class="stats" aria-live="polite">
                 <div class="stat you">
                     <div class="n" id="sYou">&mdash;</div>
                     <div class="l">you</div>
@@ -47,11 +47,23 @@
                     <div class="ml">payload</div>
                 </div>
             </div>
-            <div class="logwrap">
-                <div class="loghead">event stream</div>
-                <div class="log" id="log"></div>
+            <div class="logwrap" tabindex="0" role="region" aria-label="event stream">
+                <div class="loghead">
+                    <div class="row">
+                        <span>seq</span><span>ts</span><span>actor</span><span>event</span><span>subject</span><span>outcome</span>
+                    </div>
+                </div>
+                <div class="log" id="log" role="log"></div>
             </div>
         </div>
+    </div>
+
+    <div class="note">
+        <p>This demo keeps a match id in your browser so you can pick a game back up. No cookies,
+            no analytics, nothing about you leaves your machine.</p>
+        <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
+            same match in a second tab and both print the same digest. It is not a security
+            control &mdash; the server computes it and the client prints it.</p>
     </div>
 </div>
 <script src="/client/widget.js"></script>

@@ -251,6 +251,25 @@ def test_two_sockets_on_one_match_both_see_the_move(client):
         assert presence(first)["clients"] == 1
 
 
+def test_two_sockets_on_one_match_print_the_same_digest(client):
+    # A join changes the client count, which must not move a fingerprint of the board.
+    with client.websocket_connect("/ws/play") as first:
+        welcome = hello(first)
+
+        with client.websocket_connect("/ws/play") as second:
+            joined = hello(second, welcome["match_id"], welcome["player_token"])
+
+            assert joined["digest"] == welcome["digest"]
+
+
+def test_the_digest_moves_when_the_state_does(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        socket.send_json({"type": "MOVE", "tile": welcome["legal_moves"][0], "seq": 1})
+
+        assert socket.receive_json()["digest"] != welcome["digest"]
+
+
 def test_the_players_state_arrives_before_the_opponent_thinks(client, monkeypatch):
     # The pause belongs to the opponent's turn and must stay outside the player's round-trip,
     # which only holds while the two broadcasts are in this order.
