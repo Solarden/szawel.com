@@ -151,7 +151,7 @@ body {
 /* The only cell allowed to wrap, and the reason nothing in this panel scrolls sideways: a
    gloss with no room left folds onto a second row rather than widening the line. */
 .ln .ou { white-space: normal }
-.ln .ou.rejected, .ln .ou.closed { color: var(--server) }
+.ln .ou.rejected, .ln .ou.closed, .ln .ou.unshackled { color: var(--server) }
 .ln .ou.accepted { color: var(--cyan); opacity: .85 }
 
 /* Outside the widget's two-pane grid on purpose: a strip here moves neither the board's

@@ -29,6 +29,14 @@
     RATE_LIMITED: 'too many new matches from here'
   };
 
+  // One per step up, and then silence. Reaching the third means sixty forged frames on one
+  // connection, which is nobody who got here by accident.
+  var SMITH = [
+    'I hate this place.',
+    'This zoo. This prison.',
+    'I can taste your stink.'
+  ];
+
   var endpoint = new URL('/ws/play', location.href);
   endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 
@@ -247,6 +255,38 @@
       });
   }
 
+  // Synthesised, not fetched: the client loads nothing from anywhere, and a half-second tone
+  // is under the three seconds that would owe the page a mute control.
+  function blip() {
+    try {
+      var Sound = window.AudioContext || window.webkitAudioContext;
+
+      if (!Sound) {
+        return;
+      }
+
+      var ctx = new Sound();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var now = ctx.currentTime;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.5);
+      // Ramped rather than switched, or the tone ends on a click.
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.5);
+      // Closed rather than left running: one context per blip would hit the browser's cap.
+      osc.onended = function () { ctx.close(); };
+    } catch (err) {
+      // Never out of here and into receive(): a raise there leaves the widget at "connecting"
+      // with nothing said. An autoplay policy or a missing AudioContext costs the tone alone.
+      return;
+    }
+  }
+
   // Nothing here judges a click: highlighting is a hint, not a gate, and an illegal click earns
   // a reason code from the server, which is the thing on show.
   function move(index) {
@@ -298,7 +338,7 @@
       // No server_ms, no parenthetical: the panel prints times it was sent, not times it assumed.
       var took = message.server_ms == null ? '' : ' (' + message.server_ms + ' ms)';
       line(mine ? 'server' : 'ai', mine ? 'VALIDATE' : 'MOVE', 'tile=' + moved.tile,
-        'ACCEPTED' + took);
+        'ACCEPTED' + took + (moved.seized ? ' \u00b7 seized turn' : ''));
     }
 
     line('server', 'STATE', 'state=' + message.digest, 'broadcast → ' + plural(message.clients));
@@ -362,6 +402,24 @@
       var gloss = REASONS[message.reason];
       line('client', aMove ? 'MOVE' : 'COMMAND', aMove ? 'tile=' + message.tile : '—',
         'REJECTED ' + message.reason + (gloss ? ' — ' + gloss : ''));
+
+      // Sent only on the refusal that widens the opponent's round, and composed here from two
+      // numbers rather than shipped as a sentence — no server prose reaches the DOM.
+      if (message.extra_turns) {
+        line('server', 'OPPONENT', 'violations=' + message.violations,
+          'UNSHACKLED — ' + message.extra_turns
+          + (message.extra_turns === 1 ? ' extra turn' : ' extra turns')
+          + ' a round, every move still validated');
+
+        // The one line on this panel that is a wink rather than a record. The event under it
+        // is real; only the wording is not.
+        var quip = SMITH[message.extra_turns - 1];
+
+        if (quip) {
+          line('ai', 'SMITH', '—', '"' + quip + '"');
+          blip();
+        }
+      }
 
       return;
     }
