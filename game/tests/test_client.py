@@ -18,8 +18,9 @@ CLIENT = GAME / "client"
 # reference parked there reaches the domain the long way round.
 SCANNED = [CLIENT, GAME / "server" / "dev.html", GAME.parent / "index.html"]
 
-# The one host the client is allowed to name: P3 points it at the game's own backend.
-OWN_HOSTS = {"play.szawel.com"}
+# The hosts the client is allowed to name: P3 points it at the game's own backend, and the
+# apex's og: tags must name the page's own origin, because link previews resolve nothing relative.
+OWN_HOSTS = {"play.szawel.com", "www.szawel.com"}
 
 # An <a> points wherever the page likes and fetches nothing, so its opening tags come out
 # before the scan.
