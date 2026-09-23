@@ -40,6 +40,10 @@ jobs:
           cp CNAME _site/
           # Link previews and the tab icon; a missing og.png fails silently in every share.
           cp og.png favicon.svg _site/
+          # The page styles live in one file for the apex and every case study; work/ is
+          # copied whole so a new case study needs no edit here.
+          cp site.css _site/
+          cp -R work _site/work
           mkdir -p _site/game
           cp -R game/client _site/game/client
 

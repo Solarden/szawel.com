@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
+    <title>Every change to the house leaves a dated, attributable row — Paweł Chraczyński</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+    <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
+    <meta property="og:type" content="article"/>
+    <meta property="og:url" content="https://www.szawel.com/work/yoman.html"/>
+    <meta property="og:title" content="Every change to the house leaves a dated, attributable row"/>
+    <meta property="og:description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
+    <meta property="og:image" content="https://www.szawel.com/og.png"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <link rel="stylesheet" href="../game/client/widget.css"/>
+    <link rel="stylesheet" href="../site.css"/>
+</head>
+<body>
+<main>
+    <div class="wrap">
+        <header>
+            <a class="back" href="../#work-done">&larr; szawel.com</a>
+            <div class="kicker" style="margin-top:32px">Case study &middot; an audit trail for a homelab</div>
+            <h1>Every change to the house leaves a dated, attributable row</h1>
+            <p class="meta">PostgreSQL &middot; append-only log &middot; least-privilege roles &middot; measured 2026-09-23</p>
+        </header>
+
+        <section class="case">
+            <div class="grid three">
+                <div class="card">
+                    <h2>Problem</h2>
+                    <p>
+                        A house full of scheduled jobs, alerts and hand edits, and no shared record of
+                        any of it. Asking "what did we change around then?" meant reconstructing
+                        events from commit history and memory, which is exactly the question an audit
+                        trail exists to answer in one query.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Action</h2>
+                    <p>
+                        One append-only table. Every run writes a row with its time, topic, status and
+                        structured detail; every notification writes one too, so the record holds
+                        everything the phone was told. A hand change leaves a note with a single
+                        command. The dashboard over it reads, and can append exactly one kind of row,
+                        an alarm stand-down, under a database role that allows nothing else.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Outcome</h2>
+                    <p>
+                        <b>3,800+ attributable rows since July 2026.</b> "What touched the network that
+                        week?" is a filter, not an investigation, and a quiet night reads as a row that
+                        says so rather than as silence that could mean anything.
+                    </p>
+                </div>
+                <p class="aside">
+                The detail worth keeping: <b>a run that fires its alerts and then dies has already
+                woken somebody</b>, so looking for it in the run rows alone finds nothing. Logging the
+                notification as its own row is what makes the record match what actually happened,
+                not what the code meant to happen.
+                </p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="card split">
+                <div>
+                    <h2>Discuss your project</h2>
+                    <p>
+                        Email me with what your system does, what is failing or missing, and your
+                        timeline.
+                    </p>
+                    <p>
+                        Limited slots, and a short discovery call to confirm fit, scope and timelines
+                        before anything is agreed.
+                    </p>
+                </div>
+                <div class="actions">
+                    <a class="btn go" href="mailto:contact@szawel.com">contact@szawel.com</a>
+                    <span class="links">
+                        <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                           rel="noopener">LinkedIn</a>
+                        &middot;
+                        <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                Services provided by <b>SOLARDEN PAWE&#321; CHRACZY&#323;SKI</b>, a registered business
+                in Poland (EU), as independent consulting; scope and deliverables agreed in
+                writing.
+            </p>
+            <p>&copy; <span id="y"></span> szawel.com &middot; <a href="../">Back to the start</a></p>
+        </footer>
+    </div>
+</main>
+
+<script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

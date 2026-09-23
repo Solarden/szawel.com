@@ -16,7 +16,15 @@ GAME = Path(__file__).resolve().parent.parent
 CLIENT = GAME / "client"
 # dev.html is not published, but P7 transplants its markup into the apex page, so a CDN
 # reference parked there reaches the domain the long way round.
-SCANNED = [CLIENT, GAME / "server" / "dev.html", GAME.parent / "index.html"]
+# The case studies under work/ and the shared site.css are published beside the apex, so they
+# answer to the same rule.
+SCANNED = [
+    CLIENT,
+    GAME / "server" / "dev.html",
+    GAME.parent / "index.html",
+    GAME.parent / "site.css",
+    GAME.parent / "work",
+]
 
 # The hosts the client is allowed to name: P3 points it at the game's own backend, and the
 # apex's og: tags must name the page's own origin, because link previews resolve nothing relative.
@@ -53,7 +61,9 @@ def test_the_client_loads_nothing_from_a_third_party():
 
     # Named, because `hosts` is empty both when the client is clean and when a rename left this
     # scanning nothing — and a scan that quietly passes is worse than no scan.
-    assert {p.name for p in read} >= {"widget.js", "widget.css", "dev.html", "index.html"}
+    published = {"widget.js", "widget.css", "dev.html", "index.html", "site.css"}
+    assert {p.name for p in read} >= published
+    assert any(p.parent.name == "work" for p in read), "no case study under work/ was scanned"
     assert hosts <= OWN_HOSTS
 
 
