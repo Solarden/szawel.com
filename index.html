@@ -3,240 +3,333 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="description" content="Independent backend engineering consulting services."/>
-    <title>szawel.com — Backend Engineering Consulting</title>
+    <meta name="description"
+          content="Independent backend consulting: ingestion, validation and audit trails for systems holding data people cannot get back."/>
+    <title>szawel.com — App-layer trust for privacy-sensitive backends</title>
+    <!-- Before the page's own rules, so a collision resolves in the page's favour. The widget's
+         tokens are the page's tokens: there is no second palette to keep in step. -->
+    <link rel="stylesheet" href="game/client/widget.css"/>
     <style>
-        :root {
-            --bg: #0b0c10;
-            --card: #12141b;
-            --text: #e8eaf0;
-            --muted: #a8adbd;
-            --line: #24283a;
-        }
-
-        * {
-            box-sizing: border-box
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0 }
 
         body {
-            margin: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
             background: var(--bg);
-            color: var(--text);
-            line-height: 1.5
+            color: var(--ink);
+            font-family: var(--disp);
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
-        a {
-            color: var(--text);
-            text-decoration: none;
-            border-bottom: 1px solid rgba(232, 234, 240, .25)
-        }
+        main { padding: 44px 0 }
 
-        a:hover {
-            border-bottom-color: rgba(232, 234, 240, .6)
-        }
+        .wrap { max-width: 980px; margin: 0 auto; padding: 0 18px }
 
-        .wrap {
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 40px 18px
-        }
-
-        .hero {
-            display: grid;
-            gap: 18px;
-            padding: 28px;
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            background: linear-gradient(180deg, var(--card), rgba(18, 20, 27, .6))
-        }
+        a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(182, 255, 58, .45) }
+        a:hover { border-bottom-color: var(--you) }
 
         .kicker {
-            color: var(--muted);
-            font-size: 14px;
-            letter-spacing: .08em;
-            text-transform: uppercase
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--dim);
         }
 
-        h1 {
-            margin: 0;
-            font-size: 32px;
-            letter-spacing: -.02em
-        }
+        h1 { margin: 14px 0 0; font-size: 38px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800 }
+        h2 { margin: 0 0 10px; font-size: 18px; font-weight: 700; letter-spacing: -.01em }
 
-        .lead {
-            margin: 0;
-            color: var(--muted);
-            font-size: 16px;
-            max-width: 70ch
-        }
+        /* Scoped: .lead is also the widget's leaderboard row, and a bare rule here reaches
+           into it for every property the widget's own rule does not set. */
+        header .lead { margin: 16px 0 0; color: var(--dim); font-size: 17px; max-width: 62ch }
 
-        .cta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 6px
-        }
+        .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 1px solid var(--line);
-            background: rgba(255, 255, 255, .02)
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 10px 15px;
+            border: 1px solid var(--line2);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, .02);
         }
 
-        .btn:hover {
-            background: rgba(255, 255, 255, .06)
+        .btn:hover { background: rgba(255, 255, 255, .06); border-bottom-color: var(--line2) }
+        .btn.go { color: var(--bg); background: var(--you); border-color: var(--you) }
+        .btn.go:hover { background: #c6ff52; border-color: #c6ff52 }
+
+        section { margin-top: 52px }
+
+        .label {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--dim);
+            margin-bottom: 18px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns:repeat(12, 1fr);
-            gap: 16px;
-            margin-top: 18px
+        .grid { display: grid; grid-template-columns: 1fr; gap: 14px }
+
+        @media (min-width: 820px) {
+            .grid { grid-template-columns: 1fr 1fr }
         }
 
         .card {
-            grid-column: span 12;
-            padding: 22px;
+            padding: 20px;
             border: 1px solid var(--line);
-            border-radius: 16px;
-            background: rgba(18, 20, 27, .55)
+            border-radius: var(--radius);
+            background: var(--panel);
         }
 
-        @media (min-width: 820px) {
-            .card {
-                grid-column: span 6
-            }
-        }
+        .card p { color: var(--dim); font-size: 15px }
 
-        h2 {
-            margin: 0 0 10px 0;
-            font-size: 18px
-        }
+        .case p { color: var(--dim); max-width: 68ch; margin-top: 12px }
+        .case b { color: var(--ink); font-weight: 700 }
 
-        ul {
-            margin: 0;
-            padding-left: 18px;
-            color: var(--muted)
-        }
-
-        li {
-            margin: 6px 0
-        }
-
-        .note {
-            margin-top: 16px;
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 1px dashed rgba(168, 173, 189, .35);
-            color: var(--muted);
-            background: rgba(18, 20, 27, .35)
-        }
+        /* Wider than the prose column on purpose: one console line is ~81ch, and the widget
+           is a figure rather than a paragraph. */
+        #demo { max-width: 1400px; margin: 60px auto 0; padding: 0 22px }
+        #demo .intro { max-width: 68ch; margin-bottom: 22px }
+        #demo .intro p { color: var(--dim); margin-top: 12px }
 
         footer {
-            margin-top: 22px;
-            padding-top: 18px;
+            margin-top: 56px;
+            padding-top: 20px;
             border-top: 1px solid var(--line);
-            color: var(--muted);
-            font-size: 13px
+            color: var(--dim);
+            font-size: 13px;
         }
 
-        .small {
-            font-size: 12px;
-            color: var(--muted)
-        }
+        footer p { margin-top: 6px }
+        footer b { color: var(--ink); font-weight: 700 }
     </style>
+    <!-- No JavaScript means no widget, not a broken one: the landing page is complete without
+         it, and a stalled game is a worse first impression than no game. -->
+    <noscript>
+        <style>#demo, .cta a[href="#demo"] { display: none }</style>
+    </noscript>
+    <script src="game/client/widget.js" defer></script>
 </head>
 <body>
-<main class="wrap">
-    <section class="hero">
-        <div class="kicker">Independent Contractor • EU</div>
-        <h1>Backend Engineering Consulting</h1>
-        <p class="lead">
-            Service-based consulting and delivery support for backend systems: APIs, data services,
-            architecture reviews, and cloud infrastructure guidance.
-        </p>
-        <div class="cta">
-            <a class="btn" href="mailto:contact@szawel.com">
-                ✉️ <span>contact@szawel.com</span>
-            </a>
-            <a class="btn" href="#services">🛠️ <span>Services</span></a>
-            <a class="btn" href="#contact">🤝 <span>Contact</span></a>
+<main>
+    <div class="wrap">
+        <header>
+            <div class="kicker">// backend engineering &middot; privacy-sensitive systems</div>
+            <h1>App-layer trust for data people cannot get back.</h1>
+            <p class="lead">
+                I build and review backends where a record has to be correct, attributable and still
+                provable months later &mdash; health and device data, ingestion that survives being
+                replayed, audit trails that answer <em>who changed what, and on whose authority</em>.
+            </p>
+            <div class="cta">
+                <a class="btn go" href="#demo">See a server owning the truth</a>
+                <a class="btn" href="mailto:contact@szawel.com">contact@szawel.com</a>
+                <a class="btn" href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </header>
+
+        <section id="services" aria-labelledby="services-label">
+            <div class="label" id="services-label">What I work on</div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Ingestion that holds up</h2>
+                    <p>
+                        Third-party lab and device results into a FHIR-shaped store with an auditable
+                        trail. Idempotent writes, so a retry is not a duplicate; typed rejections, so a
+                        refused record says why rather than vanishing into a log.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Regulated-shape pipelines</h2>
+                    <p>
+                        HIPAA and GDPR constraints treated as design inputs rather than a review at the
+                        end: retention expressed as policy instead of a cron job, least data held, and
+                        identifying fields kept out of the places that do not need them.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>App-layer trust</h2>
+                    <p>
+                        Signing, key handling and validation that does not assume the network is
+                        friendly or the client is honest &mdash; on services, and on devices that are
+                        only as trustworthy as their firmware.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>The rest of the backend</h2>
+                    <p>
+                        API design and service boundaries, search and indexing on
+                        OpenSearch/Elasticsearch, AWS, and the performance work that turns up once a
+                        system has real data in it.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="case" aria-labelledby="case-label">
+            <div class="label" id="case-label">Evidence &mdash; de-clouding a shelf of IoT devices</div>
+            <div class="card">
+                <h2>Problem</h2>
+                <p>
+                    Cheap consumer infrared controllers built on the Tuya BK7231N ship tethered to a
+                    vendor cloud: an account, an outbound tunnel that is always up, and a third party in
+                    the path of every button press inside the house. The device works until somebody
+                    else's service does not.
+                </p>
+                <h2 style="margin-top:22px">Action</h2>
+                <p>
+                    Reflashed the chip to ESPHome and moved every control path onto an authenticated
+                    one. The controller talks to each node over ESPHome's encrypted native API with a
+                    per-node key; the unauthenticated per-device web dashboard is gone from the
+                    firmware; the build dashboard sits behind an authenticating reverse proxy with
+                    automated certificates instead of on a flat network. Nothing accepts an inbound
+                    connection from the internet.
+                </p>
+                <h2 style="margin-top:22px">Outcome</h2>
+                <p>
+                    No vendor account, no cloud dependency, no third party in the path &mdash; and a
+                    control plane authenticated at the device layer rather than trusted because it
+                    happens to be on the LAN.
+                </p>
+                <p>
+                    Two details worth keeping, because they are the kind you only have if you did it.
+                    Removing the dashboard from the configuration did not close it: <b>old firmware
+                    keeps serving what it was flashed with</b>, so it stayed open until each node was
+                    re-flashed. And the on-board temperature sensor self-heats about 20&nbsp;&deg;C
+                    inside a sealed case, so the reading is corrected with a calibration offset against
+                    a reference thermometer. Hardware is never the ideal on paper.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <section id="demo" aria-labelledby="demo-label">
+        <div class="intro">
+            <div class="label" id="demo-label">Live &mdash; the console is the point</div>
+            <p>
+                Below is a game. The game is the bait; the panel beside it is the work. The browser
+                holds no rules at all &mdash; every click is a command sent to a server, decided
+                there, and answered with either a new state or a typed reason for refusal. Every
+                command after the handshake is signed and carries a counter the server will not
+                accept twice. Every number on that panel is measured; none of it is decoration.
+            </p>
+            <p>
+                It demonstrates real-time state synchronisation, server-side validation, session
+                resumption and replay protection. It does not demonstrate FHIR or PHI handling: it is
+                the same authoritative-state pattern I ship in production APIs, minus the part where
+                it touches anyone's data.
+            </p>
+            <p>
+                Specified, reviewed and operated by me; the implementation was written with Claude
+                against that specification and the test suite in the
+                <a href="https://github.com/Solarden/szawel.com" target="_blank" rel="noopener">public
+                    repository</a>.
+            </p>
         </div>
+        <div class="widget">
+            <div class="pane left">
+                <div class="paneTop">
+                    <div class="paneLabel">// territory.client</div>
+                </div>
+                <div class="board inert" id="board" role="group" aria-label="game board"
+                     data-endpoint="wss://play.szawel.com/ws/play">
+                    <button type="button" id="start">start a match</button>
+                </div>
+                <div class="stats" aria-live="polite">
+                    <div class="stat you">
+                        <div class="n" id="sYou">&mdash;</div>
+                        <div class="l">you</div>
+                    </div>
+                    <div class="stat server">
+                        <div class="n" id="sServer">&mdash;</div>
+                        <div class="l">server&nbsp;AI</div>
+                    </div>
+                    <div class="turnpill">turn <b id="turn">&mdash;</b></div>
+                </div>
+            </div>
+
+            <div class="pane right">
+                <div class="paneTop">
+                    <div class="paneLabel">// game.server &nbsp;&mdash;&nbsp; rt log</div>
+                </div>
+                <div class="conn"><span class="led off" id="led"></span><span id="connTxt">not connected</span></div>
+                <div class="endpoint" id="endpoint">&mdash;</div>
+                <div class="metrics">
+                    <div class="metric lag">
+                        <div class="mn" id="mLag">&mdash;</div>
+                        <div class="ml">turn latency</div>
+                    </div>
+                    <div class="metric">
+                        <div class="mn" id="mSrv">&mdash;</div>
+                        <div class="ml">server time</div>
+                    </div>
+                    <div class="metric">
+                        <div class="mn" id="mPay">&mdash;</div>
+                        <div class="ml">payload</div>
+                    </div>
+                </div>
+                <div class="logwrap" tabindex="0" role="region" aria-label="event stream">
+                    <div class="loghead">
+                        <div class="row">
+                            <span>seq</span><span>ts</span><span>actor</span><span>event</span><span>subject</span><span>outcome</span>
+                        </div>
+                    </div>
+                    <div class="log" id="log" role="log"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard">
+            <div class="paneLabel">// leaderboard &nbsp;&mdash;&nbsp; this week, top ten</div>
+            <div class="leaders" id="leaders" aria-live="polite"><span class="empty">&mdash;</span></div>
+        </div>
+
         <div class="note">
-            Engagements are provided as independent consulting services (scope & deliverables agreed in writing).
+            <p><b>Nothing leaves your machine until you press start.</b> Press it and this page opens
+                a connection to the game server, which sees your address the way any server you
+                connect to does. It keeps a match id in your browser so you can pick a game back up.
+                No cookies, no analytics, nothing else about you is kept. Scores are ephemeral and
+                reset weekly.</p>
+            <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
+                connection and hands to this page, and carries a counter the server will not accept
+                twice. You can read that key in devtools &mdash; so the envelope protects the
+                <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
+                illegal moves, and nothing else.</p>
+            <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
+                same match in a second tab and both print the same digest. It is not a security
+                control &mdash; the server computes it and the client prints it.</p>
         </div>
     </section>
 
-    <section id="services" class="grid" aria-label="Services">
-        <div class="card">
-            <h2>Service areas</h2>
-            <ul>
-                <li>Backend engineering consulting and implementation services</li>
-                <li>API design (REST/GraphQL) and service architecture</li>
-                <li>Data systems design and performance optimization</li>
-                <li>Search/indexing solutions (e.g., OpenSearch/Elasticsearch)</li>
-                <li>Cloud infrastructure advisory (AWS)</li>
-                <li>Security-conscious handling of sensitive data</li>
-            </ul>
-        </div>
+    <div class="wrap">
+        <section id="contact" aria-labelledby="contact-label">
+            <div class="label" id="contact-label">Contact</div>
+            <div class="card">
+                <h2>Email is the fastest way to reach me</h2>
+                <p>
+                    <a href="mailto:contact@szawel.com">contact@szawel.com</a> &mdash; limited slots, and
+                    a short discovery call to confirm fit, scope and timelines. Preferred shape is a
+                    monthly package or a defined deliverable.
+                </p>
+                <p style="margin-top:10px">
+                    <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                       rel="noopener">LinkedIn</a>
+                    &middot;
+                    <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                </p>
+            </div>
+        </section>
 
-        <div class="card">
-            <h2>Typical deliverables</h2>
-            <ul>
-                <li>Architecture reviews and technical recommendations</li>
-                <li>Production-ready services/APIs with documentation</li>
-                <li>Monitoring/logging setup guidance</li>
-                <li>Operational support within agreed scope</li>
-                <li>Testing strategy and implementation support</li>
-            </ul>
-        </div>
-
-        <div class="card">
-            <h2>How I work</h2>
-            <ul>
-                <li>Remote-first, async-friendly collaboration</li>
-                <li>Scope and priorities agreed with stakeholders</li>
-                <li>Clear written summaries of recommendations and decisions</li>
-                <li>Focused on measurable outcomes and reliability</li>
-            </ul>
-        </div>
-
-        <div class="card">
-            <h2>Availability</h2>
-            <p class="small">
-                Limited slots. Short discovery call to confirm fit, scope, and timelines.
+        <footer>
+            <p>
+                Services provided by <b>SOLARDEN PAWE&#321; CHRACZY&#323;SKI</b>, a registered business
+                in Poland (EU), as independent consulting &mdash; scope and deliverables agreed in
+                writing.
             </p>
-            <p class="small">
-                Preferred: monthly service package or defined deliverable-based engagements.
-            </p>
-        </div>
-    </section>
-
-    <section id="contact" class="card" style="margin-top:16px">
-        <h2>Contact</h2>
-        <p class="lead" style="margin-top:6px">
-            Email is the fastest way to reach me:
-            <a href="mailto:contact@szawel.com">contact@szawel.com</a>
-        </p>
-        <p class="small">
-            <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank" rel="noopener">LinkedIn</a> |
-            <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
-        </p>
-    </section>
-
-    <footer>
-        <div>
-            Services provided by <strong>SOLARDEN PAWEŁ CHRACZYŃSKI</strong>, registered business in Poland (EU).
-        </div>
-        <div class="small">
-            © <span id="y"></span> szawel.com
-        </div>
-    </footer>
+            <p>&copy; <span id="y"></span> szawel.com</p>
+        </footer>
+    </div>
 </main>
 
 <script>
