@@ -37,8 +37,14 @@
     'I can taste your stink.'
   ];
 
-  var endpoint = new URL('/ws/play', location.href);
-  endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // The host page names the socket. A page that does not is talking to its own origin, which
+  // is what the dev harness does — and what the apex must not do, since it is served by Pages.
+  var endpoint = new URL(boardEl.dataset.endpoint || '/ws/play', location.href);
+
+  // Only the relative branch needs mapping: a configured wss:// URL already is one.
+  if (endpoint.protocol === 'http:' || endpoint.protocol === 'https:') {
+    endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:';
+  }
 
   var socket = null;
   var signer = null;
@@ -169,6 +175,9 @@
   }
 
   function build(state) {
+    // The placeholder board and the start control are children here and are not in `tiles`.
+    // Without this the real tiles append under them and the board silently doubles in height.
+    boardEl.textContent = '';
     boardEl.style.gridTemplateColumns = 'repeat(' + state.cols + ', 1fr)';
     boardEl.style.aspectRatio = state.cols + '/' + state.rows;
 
@@ -451,12 +460,12 @@
     boardEl.classList.add('inert');
     line('client', 'SOCKET', '—', declined
       ? 'CLOSED — the server declined the session: ' + declined
-      : 'CLOSED — the server is gone, and this client has no rules to carry on with');
+      : 'CLOSED — the server is gone, and this client has no rules to carry on with. Reload to retry');
   }
 
   function connect() {
     var saved = recall();
-    el('endpoint').textContent = endpoint.href;
+    el('connTxt').textContent = 'connecting';
     socket = new WebSocket(endpoint.href);
 
     socket.addEventListener('open', function () {
@@ -475,5 +484,26 @@
     socket.addEventListener('error', dead);
   }
 
-  connect();
+  // Markup and nothing more: no dot, no role, no tabindex, no listener. It exists so the pane
+  // reads as a board rather than as a hole before anyone has asked the server for one.
+  function placeholder() {
+    var index = 48;
+
+    while (index--) {
+      var tile = document.createElement('div');
+      tile.className = 'tile';
+      boardEl.appendChild(tile);
+    }
+  }
+
+  // Not on load: a socket for every visitor costs a connection and shows the server an address
+  // nobody offered, on a page whose note says nothing leaves your machine until you press this.
+  el('start').addEventListener('click', function () {
+    this.remove();
+    connect();
+  });
+
+  // A fact about how this page is configured, not a claim that anything has happened.
+  el('endpoint').textContent = endpoint.href;
+  placeholder();
 })();

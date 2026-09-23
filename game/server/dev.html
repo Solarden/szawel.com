@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>territory — server-authoritative game widget</title>
     <link rel="stylesheet" href="/client/widget.css"/>
+    <style>
+        /* The page around the widget, which widget.css deliberately does not style: this
+           harness is the host page here, exactly as index.html is on the apex. */
+        * { box-sizing: border-box; margin: 0; padding: 0 }
+
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--mono);
+            line-height: 1.5;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap { max-width: 1400px; margin: 0 auto; padding: 40px 22px }
+    </style>
 </head>
 <body>
 <div class="wrap">
@@ -13,7 +29,9 @@
             <div class="paneTop">
                 <div class="paneLabel">// territory.client</div>
             </div>
-            <div class="board inert" id="board" role="group" aria-label="game board"></div>
+            <div class="board inert" id="board" role="group" aria-label="game board">
+                <button type="button" id="start">start a match</button>
+            </div>
             <div class="stats" aria-live="polite">
                 <div class="stat you">
                     <div class="n" id="sYou">&mdash;</div>
@@ -31,7 +49,7 @@
             <div class="paneTop">
                 <div class="paneLabel">// game.server &nbsp;&mdash;&nbsp; rt log</div>
             </div>
-            <div class="conn"><span class="led off" id="led"></span><span id="connTxt">connecting</span></div>
+            <div class="conn"><span class="led off" id="led"></span><span id="connTxt">not connected</span></div>
             <div class="endpoint" id="endpoint">&mdash;</div>
             <div class="metrics">
                 <div class="metric lag">
@@ -77,6 +95,6 @@
             control &mdash; the server computes it and the client prints it.</p>
     </div>
 </div>
-<script src="/client/widget.js"></script>
+<script src="/client/widget.js" defer></script>
 </body>
 </html>

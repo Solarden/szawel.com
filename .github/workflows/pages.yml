@@ -31,15 +31,15 @@ jobs:
         # stay readable on GitHub without being fetchable under the domain.
         # game/client is copied whole, fonts/ included — an explicit file list here
         # would 404 the webfonts silently.
+        # Unconditional: index.html takes its palette from widget.css, so a tree
+        # without it is an unstyled landing page.
         run: |
           mkdir -p _site
           cp index.html _site/
           # A published tree without CNAME is how the custom domain gets lost.
           cp CNAME _site/
-          if [ -d game/client ]; then
-            mkdir -p _site/game
-            cp -R game/client _site/game/client
-          fi
+          mkdir -p _site/game
+          cp -R game/client _site/game/client
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

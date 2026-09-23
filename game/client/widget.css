@@ -47,18 +47,8 @@
   --log-dim: #909391;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0 }
-
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--mono);
-  line-height: 1.5;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-
-.wrap { max-width: 1400px; margin: 0 auto; padding: 40px 22px }
+/* No reset, no body rule and no page container: this file styles the widget and nothing
+   around it, so every rule below is reachable only through the widget's own markup. */
 
 .widget {
   display: grid;
@@ -78,7 +68,29 @@ body {
 .paneTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px }
 .paneLabel { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim) }
 
-.board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; aspect-ratio: 8/6 }
+/* Relative so the start control can sit over the board it starts. */
+.board { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; aspect-ratio: 8/6 }
+
+#start {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: max-content;
+  height: max-content;
+  padding: 11px 18px;
+  /* Named rather than inherited: the harness sets the page in mono and the apex does not,
+     and the control is part of the widget either way. */
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: var(--bg);
+  background: var(--you);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+#start:hover { background: #c6ff52 }
 
 .tile {
   position: relative;
@@ -159,20 +171,30 @@ body {
 .leaderboard { margin-top: 22px }
 .leaderboard .paneLabel { margin-bottom: 10px }
 .leaders { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px }
-.lead { display: grid; grid-template-columns: 2ch 1fr auto; gap: 9px; font-size: 13px; border-bottom: 1px solid var(--line); padding-bottom: 5px }
-.lead .rk { color: var(--log-dim) }
+/* Scoped to its container, not bare: .lead is also the landing page's hero paragraph, and a
+   bare rule here turns that paragraph into a three-column grid. */
+.leaders .lead { display: grid; grid-template-columns: 2ch 1fr auto; gap: 9px; font-size: 13px; border-bottom: 1px solid var(--line); padding-bottom: 5px }
+.leaders .lead .rk { color: var(--log-dim) }
 /* Ellipsis rather than a wider column: a longer word on the list must not widen the page. */
-.lead .hd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.lead .pt { color: var(--you) }
+.leaders .lead .hd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.leaders .lead .pt { color: var(--you) }
 .leaders .empty { color: var(--dim); font-size: 13px }
 
 .note { margin-top: 22px; font-size: 13px; line-height: 1.7; color: var(--dim); max-width: 62ch }
-.note p { margin-bottom: 8px }
+/* Both margins, not only the bottom: the host page owns the reset and may not zero them. */
+.note p { margin: 0 0 8px }
 .note b { color: var(--ink); font-weight: 400 }
 
 @keyframes pop { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: scale(1) } }
 @keyframes slidein { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
 @keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+
+/* The LED blinks forever and the board pops in 48 tiles at once, on a page a visitor
+   did not open to watch an animation. */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .ln, .led { animation: none }
+  .tile { transition: none }
+}
 
 /* Stacks well before it has to: side by side, the console's fixed columns stop fitting
    below about 1050px. Full width, they fit again. */
