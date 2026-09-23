@@ -34,34 +34,34 @@
             </div>
             <div class="stats" aria-live="polite">
                 <div class="stat you">
-                    <div class="n" id="sYou">&mdash;</div>
+                    <div class="n" id="sYou">&middot;</div>
                     <div class="l">you</div>
                 </div>
                 <div class="stat server">
-                    <div class="n" id="sServer">&mdash;</div>
+                    <div class="n" id="sServer">&middot;</div>
                     <div class="l">server&nbsp;AI</div>
                 </div>
-                <div class="turnpill">turn <b id="turn">&mdash;</b></div>
+                <div class="turnpill">turn <b id="turn">&middot;</b></div>
             </div>
         </div>
 
         <div class="pane right">
             <div class="paneTop">
-                <div class="paneLabel">// game.server &nbsp;&mdash;&nbsp; rt log</div>
+                <div class="paneLabel">// game.server &nbsp;&middot;&nbsp; rt log</div>
             </div>
             <div class="conn"><span class="led off" id="led"></span><span id="connTxt">not connected</span></div>
-            <div class="endpoint" id="endpoint">&mdash;</div>
+            <div class="endpoint" id="endpoint">&middot;</div>
             <div class="metrics">
                 <div class="metric lag">
-                    <div class="mn" id="mLag">&mdash;</div>
+                    <div class="mn" id="mLag">&middot;</div>
                     <div class="ml">turn latency</div>
                 </div>
                 <div class="metric">
-                    <div class="mn" id="mSrv">&mdash;</div>
+                    <div class="mn" id="mSrv">&middot;</div>
                     <div class="ml">server time</div>
                 </div>
                 <div class="metric">
-                    <div class="mn" id="mPay">&mdash;</div>
+                    <div class="mn" id="mPay">&middot;</div>
                     <div class="ml">payload</div>
                 </div>
             </div>
@@ -77,8 +77,8 @@
     </div>
 
     <div class="leaderboard">
-        <div class="paneLabel">// leaderboard &nbsp;&mdash;&nbsp; this week, top ten</div>
-        <div class="leaders" id="leaders" aria-live="polite"><span class="empty">&mdash;</span></div>
+        <div class="paneLabel">// leaderboard &nbsp;&middot;&nbsp; this week, top ten</div>
+        <div class="leaders" id="leaders" aria-live="polite"><span class="empty">&middot;</span></div>
     </div>
 
     <div class="note">
@@ -87,12 +87,12 @@
             weekly.</p>
         <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
             connection and hands to this page, and carries a counter the server will not accept
-            twice. You can read that key in devtools &mdash; so the envelope protects the
+            twice. You can read that key in devtools &middot; so the envelope protects the
             <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
             illegal moves, and nothing else.</p>
         <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
             same match in a second tab and both print the same digest. It is not a security
-            control &mdash; the server computes it and the client prints it.</p>
+            control &middot; the server computes it and the client prints it.</p>
     </div>
 </div>
 <script src="/client/widget.js" defer></script>
