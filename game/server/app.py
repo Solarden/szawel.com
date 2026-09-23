@@ -8,8 +8,10 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
+import sqlite3
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -27,10 +29,11 @@ from game.rules import (
     apply_move,
     greedy_ai,
     legal_moves,
+    score,
     to_dict,
     winner,
 )
-from game.server import matches
+from game.server import leaderboard, matches
 
 # The opponent thinking. Never reported as latency — a real local turn resolves in about a
 # millisecond, and an instant reply reads as nothing having happened.
@@ -47,6 +50,54 @@ CLIENT_DIR = _HERE.parent / "client"
 # EnvironmentFile would switch the site off permanently and silently.
 DISABLED_FLAG = Path(os.environ.get("PLAY_DISABLED_FILE", "").strip() or "/var/lib/play/disabled")
 
+# New matches one address may mint inside the window below. Blank reads as unset, as above.
+MINT_LIMIT = int(os.environ.get("PLAY_MINT_LIMIT", "").strip() or "10")
+MINT_WINDOW_SECONDS = 60
+
+if MINT_LIMIT < 1:
+    # Zero reads as "no limit" to anyone setting it and does the opposite, exactly as it does
+    # for the match cap: every new visitor refused while /health still answers ok.
+    raise ValueError(f"PLAY_MINT_LIMIT must be at least 1, got {MINT_LIMIT}")
+
+# Addresses, and only here. Nothing in this dict is written down, and a minute after an
+# address stops minting matches it is gone from the process entirely.
+_minted: dict[str, list[float]] = {}
+
+
+def _may_mint(address: str) -> bool:
+    """One rolling window per address, with the whole table swept on the way through.
+
+    What it bounds is HELLO spam minting matches on a box with 4 GB of RAM — the ceiling
+    `MAX_MATCHES` holds from the other side. It is not an anti-farming control: a match takes
+    tens of seconds to play out, so nobody farming the leaderboard comes near this limit, and
+    the weekly reset is what answers farming.
+
+    ponytail: the sweep is O(addresses) and runs only on the mint path, which is the path
+    being limited. 10 a minute is a guess — tune it once something real has tripped it.
+    """
+    cutoff = time.monotonic() - MINT_WINDOW_SECONDS
+
+    # The sweep is the TTL. Without it this dict would be a log of every address ever seen.
+    for known, times in list(_minted.items()):
+        kept = [moment for moment in times if moment > cutoff]
+
+        if kept:
+            _minted[known] = kept
+        else:
+            del _minted[known]
+
+    return len(_minted.get(address, ())) < MINT_LIMIT
+
+
+def _note_mint(address: str) -> None:
+    """Called only once a match exists, so a refusal never counts against the window.
+
+    Charging at the check instead would bill a visitor for matches they did not get: a
+    full registry would spend their whole window on AT_CAPACITY refusals and then lock
+    them out for a minute after capacity frees.
+    """
+    _minted.setdefault(address, []).append(time.monotonic())
+
 
 class Transport(Enum):
     """Refusals the engine cannot express, because `rules.py` must not know a socket exists."""
@@ -57,6 +108,7 @@ class Transport(Enum):
     MISSING_ENVELOPE = auto()
     BAD_SIGNATURE = auto()
     REPLAYED_NONCE = auto()
+    RATE_LIMITED = auto()
 
 
 @dataclass(slots=True)
@@ -158,6 +210,30 @@ def _state_message(
     }
 
 
+def _board() -> dict:
+    """The board as it goes into a message, or nothing at all when the store cannot answer.
+
+    Left out rather than sent empty: an empty board says this week has no scores, and a
+    store that just failed has not said that.
+    """
+    try:
+        return {"leaderboard": leaderboard.top()}
+    except sqlite3.Error:
+        logging.exception("the leaderboard could not be read")
+
+        return {}
+
+
+def _filed(match: matches.Match) -> dict:
+    """The handle this match's score went on the board under, or nothing."""
+    try:
+        return {"handle": leaderboard.record(score(match.state, Player.YOU))}
+    except sqlite3.Error:
+        logging.exception("the leaderboard refused a score")
+
+        return {}
+
+
 def _over_message(match: matches.Match) -> dict:
     champion = winner(match.state)
 
@@ -165,6 +241,7 @@ def _over_message(match: matches.Match) -> dict:
         "type": "OVER",
         "winner": None if champion is None else champion.value,
         "scores": to_dict(match.state)["scores"],
+        **_board(),
     }
 
 
@@ -275,7 +352,11 @@ async def _handle_move(match: matches.Match, socket: WebSocket, message: dict) -
             await _broadcast(match, _state_message(match, last=theirs, started=started))
 
         if match.state.over:
-            await _broadcast(match, _over_message(match))
+            # The one place a match ends, so the one place a score is filed. Its own statement
+            # because the row has to be written before `_over_message` reads the board back,
+            # or the player's own score is missing from the message announcing it.
+            filed = _filed(match)
+            await _broadcast(match, _over_message(match) | filed)
 
 
 @app.websocket("/ws/play")
@@ -298,11 +379,19 @@ async def play(socket: WebSocket) -> None:
             if kind == "HELLO" and match is None:
                 match = matches.get(message.get("match_id"), message.get("player_token"))
 
-                # Both switches refuse only a new match. The resume above has already run,
-                # and ending a game in progress is what neither of them is for.
+                # All three refusals below reach only a new match. The resume above has
+                # already run, and ending a game in progress is what none of them is for —
+                # so a reconnect is never counted against the window either.
                 if match is None:
                     if DISABLED_FLAG.exists():
                         await _send(socket, _rejected(Transport.DISABLED))
+
+                        break
+
+                    address = socket.client.host if socket.client else "unknown"
+
+                    if not _may_mint(address):
+                        await _send(socket, _rejected(Transport.RATE_LIMITED))
 
                         break
 
@@ -312,6 +401,8 @@ async def play(socket: WebSocket) -> None:
                         await _send(socket, _rejected(Transport.AT_CAPACITY))
 
                         break
+
+                    _note_mint(address)
 
                 match.sockets.add(socket)
                 # Paired with the decrement in `finally`; `Match.holders` says why it exists.
@@ -324,6 +415,9 @@ async def play(socket: WebSocket) -> None:
                         "match_id": match.id,
                         "player_token": match.player_token,
                         "session_key": session.key.hex(),
+                        # Beside the spread, not inside `_view`, which also feeds every STATE:
+                        # the board changes once a match and the payload tile is a measurement.
+                        **_board(),
                         **_view(match),
                     },
                 )

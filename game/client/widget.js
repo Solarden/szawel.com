@@ -6,6 +6,7 @@
   var el = function (id) { return document.getElementById(id); };
   var boardEl = el('board');
   var logEl = el('log');
+  var leadersEl = el('leaders');
   // The header and the rows scroll together, so the scroller is the wrapper, not the rows.
   var scrollEl = logEl.closest('.logwrap');
   var BYTES = new TextEncoder();
@@ -24,7 +25,8 @@
     AT_CAPACITY: 'too many matches in progress',
     MISSING_ENVELOPE: 'command was not signed',
     BAD_SIGNATURE: 'signature did not verify',
-    REPLAYED_NONCE: 'command already seen'
+    REPLAYED_NONCE: 'command already seen',
+    RATE_LIMITED: 'too many new matches from here'
   };
 
   var endpoint = new URL('/ws/play', location.href);
@@ -95,6 +97,34 @@
     node.textContent = text;
 
     return node;
+  }
+
+  // A decided match replays no OVER, so a returning player only ever meets the board on
+  // WELCOME — which is why both messages carry it.
+  function leaders(rows) {
+    // A server that sent no board has not said the week is empty, so nothing here may
+    // say it either: the strip keeps its placeholder. Reachable the moment the client
+    // and the server stop deploying together, which is exactly what P7 does to them.
+    if (!rows) {
+      return;
+    }
+
+    leadersEl.textContent = '';
+
+    if (!rows.length) {
+      leadersEl.appendChild(span('empty', 'no scores yet this week'));
+
+      return;
+    }
+
+    rows.forEach(function (row, index) {
+      var entry = document.createElement('div');
+      entry.className = 'lead';
+      entry.appendChild(span('rk', String(index + 1).padStart(2, '0')));
+      entry.appendChild(span('hd', row.handle));
+      entry.appendChild(span('pt', String(row.score)));
+      leadersEl.appendChild(entry);
+    });
   }
 
   function presence(clients) {
@@ -286,6 +316,7 @@
       legal = new Set(message.legal_moves);
       presence(message.clients);
       render(message.state);
+      leaders(message.leaderboard);
       // Digest in the subject column, as on every STATE — comparing two tabs means reading
       // one column down, and a session's first digest must not sit in a different one.
       line('server', 'WELCOME', 'state=' + message.digest,
@@ -338,6 +369,12 @@
     if (message.type === 'OVER') {
       line('server', 'OVER', 'winner=' + (message.winner || 'draw'),
         message.scores.you + ':' + message.scores.server);
+      leaders(message.leaderboard);
+
+      // No handle means nothing was filed, and a FILED line would say otherwise.
+      if (message.handle) {
+        line('server', 'SCORE', message.handle, 'FILED — week resets, board is top ten');
+      }
     }
   }
 

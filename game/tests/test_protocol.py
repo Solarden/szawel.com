@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -12,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from game.rules import Rejection
 from game.server import app as server
-from game.server import matches
+from game.server import leaderboard, matches
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +21,20 @@ def an_empty_registry():
     # The registry is module-level, so without this every match ever created stays visible to
     # every later test and the first assertion about the registry as a whole goes flaky.
     matches._matches.clear()
+
+
+@pytest.fixture(autouse=True)
+def a_scratch_board(tmp_path, monkeypatch):
+    # Every match played out here files a row, so without this the suite writes to the state
+    # directory the box has and no other machine does.
+    monkeypatch.setattr(leaderboard, "DB_PATH", tmp_path / "leaderboard.db")
+
+
+@pytest.fixture(autouse=True)
+def a_forgetful_window():
+    # Every socket in this suite arrives from the same address, so one test's new matches
+    # count against the next one's and the limit fires somewhere different on every run.
+    server._minted.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -488,6 +503,162 @@ def test_a_full_registry_evicts_a_match_nobody_is_connected_to(client, monkeypat
     assert fresh["match_id"] != abandoned["match_id"]
 
 
+def test_the_board_reaches_a_player_who_has_not_finished_anything(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+    assert welcome["leaderboard"] == []
+
+
+def test_finishing_a_match_puts_you_on_the_board(client):
+    with client.websocket_connect("/ws/play") as socket:
+        over = play_out(socket, hello(socket))
+
+    # The score on the board is the one the server counted, and the client never sent one.
+    assert {"handle": over["handle"], "score": over["scores"]["you"]} in over["leaderboard"]
+
+
+def test_a_resumed_finished_match_still_sees_the_board(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        over = play_out(socket, welcome)
+
+    with client.websocket_connect("/ws/play") as socket:
+        resumed = hello(socket, welcome["match_id"], welcome["player_token"])
+        # Whatever the next frame is, it is the answer to this move and not a replayed OVER —
+        # which is why WELCOME is the only door the board reaches a returning player through.
+        move(socket, resumed, 0)
+        answered = socket.receive_json()
+
+    assert resumed["state"]["over"] is True
+    assert resumed["leaderboard"] == over["leaderboard"]
+    assert (answered["type"], answered["reason"]) == ("REJECTED", "GAME_OVER")
+
+
+def test_a_state_message_does_not_carry_the_board(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        move(socket, welcome, welcome["legal_moves"][0])
+        broadcast = socket.receive_json()
+
+    assert broadcast["type"] == "STATE"
+    assert "leaderboard" not in broadcast
+
+
+def test_a_match_with_two_sockets_on_it_is_recorded_once(client):
+    with client.websocket_connect("/ws/play") as first:
+        welcome = hello(first)
+
+        with client.websocket_connect("/ws/play") as second:
+            hello(second, welcome["match_id"], welcome["player_token"])
+            presence(first)
+            play_out(first, welcome)
+
+    assert len(leaderboard.top()) == 1
+
+
+def test_a_new_match_is_refused_once_the_window_is_full(client, monkeypatch):
+    monkeypatch.setattr(server, "MINT_LIMIT", 1)
+
+    with client.websocket_connect("/ws/play") as socket:
+        hello(socket)
+
+    with client.websocket_connect("/ws/play") as turned_away:
+        refusal = hello(turned_away)
+
+    assert refusal["reason"] == "RATE_LIMITED"
+
+
+def test_a_resume_is_never_rate_limited(client, monkeypatch):
+    monkeypatch.setattr(server, "MINT_LIMIT", 1)
+
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+    with client.websocket_connect("/ws/play") as socket:
+        resumed = hello(socket, welcome["match_id"], welcome["player_token"])
+
+    assert resumed["type"] == "WELCOME"
+    assert resumed["match_id"] == welcome["match_id"]
+
+
+def test_the_window_forgets(client, monkeypatch):
+    monkeypatch.setattr(server, "MINT_LIMIT", 1)
+
+    with client.websocket_connect("/ws/play") as socket:
+        hello(socket)
+
+    aged = time.monotonic() - server.MINT_WINDOW_SECONDS - 1
+
+    for address in server._minted:
+        server._minted[address] = [aged]
+
+    with client.websocket_connect("/ws/play") as socket:
+        fresh = hello(socket)
+
+    assert fresh["type"] == "WELCOME"
+
+
+def test_a_different_address_gets_its_own_window(client, monkeypatch):
+    monkeypatch.setattr(server, "MINT_LIMIT", 1)
+
+    with client.websocket_connect("/ws/play") as socket:
+        hello(socket)
+
+    # The address is the whole key, and starlette lets a test be a second visitor.
+    with TestClient(server.app, client=("10.0.0.2", 1234)) as elsewhere:
+        with elsewhere.websocket_connect("/ws/play") as socket:
+            welcome = hello(socket)
+
+    assert welcome["type"] == "WELCOME"
+
+
+@pytest.fixture
+def a_broken_store(monkeypatch):
+    """A store that raises on every call, which is a full disk or an unwritable state dir."""
+
+    def refuse(*args):
+        raise sqlite3.OperationalError("disk I/O error")
+
+    monkeypatch.setattr(leaderboard, "record", refuse)
+    monkeypatch.setattr(leaderboard, "top", refuse)
+
+
+def test_a_broken_store_does_not_cost_a_visitor_their_game(client, a_broken_store):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+    assert welcome["type"] == "WELCOME"
+    assert "leaderboard" not in welcome
+
+
+def test_a_broken_store_does_not_cost_a_finished_match_its_result(client, a_broken_store):
+    with client.websocket_connect("/ws/play") as socket:
+        over = play_out(socket, hello(socket))
+
+    assert sum(over["scores"].values()) == 48
+    assert "handle" not in over
+    assert "leaderboard" not in over
+
+
+def test_a_refused_match_is_not_counted_against_the_window(client, monkeypatch):
+    monkeypatch.setattr(matches, "MAX_MATCHES", 1)
+    monkeypatch.setattr(server, "MINT_LIMIT", 2)
+
+    with client.websocket_connect("/ws/play") as held:
+        hello(held)
+
+        # Turned away because the registry is full, not because of anything this visitor did.
+        with client.websocket_connect("/ws/play") as turned_away:
+            assert hello(turned_away)["reason"] == "AT_CAPACITY"
+
+    with client.websocket_connect("/ws/play") as socket:
+        after = hello(socket)
+
+    # One match was handed out, so one of the two slots is spent — not both.
+    assert after["type"] == "WELCOME"
+
+
 @pytest.mark.parametrize("switched_off", [False, True])
 def test_health_reports_the_kill_switch_rather_than_failing_on_it(
     client, kill_switch, switched_off
@@ -508,27 +679,44 @@ def test_a_blanked_env_value_reads_as_unset_rather_than_breaking_the_box(blanked
         [
             sys.executable,
             "-c",
-            "from game.server import app, matches;print(matches.MAX_MATCHES, app.DISABLED_FLAG)",
+            "from game.server import app, leaderboard, matches;"
+            "print(matches.MAX_MATCHES, app.DISABLED_FLAG, app.MINT_LIMIT, leaderboard.DB_PATH)",
         ],
-        env={**os.environ, "PLAY_MAX_MATCHES": blanked, "PLAY_DISABLED_FILE": blanked},
+        env={
+            **os.environ,
+            "PLAY_MAX_MATCHES": blanked,
+            "PLAY_DISABLED_FILE": blanked,
+            "PLAY_MINT_LIMIT": blanked,
+            "PLAY_DB_FILE": blanked,
+        },
         cwd=Path(__file__).resolve().parent.parent.parent,
         capture_output=True,
         text=True,
     )
 
     assert proof.returncode == 0, proof.stderr
-    assert proof.stdout.split() == ["200", "/var/lib/play/disabled"]
+    assert proof.stdout.split() == [
+        "200",
+        "/var/lib/play/disabled",
+        "10",
+        "/var/lib/play/leaderboard.db",
+    ]
 
 
 @pytest.mark.parametrize("refused", ["0", "-1"])
-def test_a_cap_below_one_is_refused_at_import_rather_than_silently_applied(refused):
+@pytest.mark.parametrize(
+    ("variable", "module"), [("PLAY_MAX_MATCHES", "matches"), ("PLAY_MINT_LIMIT", "app")]
+)
+def test_a_limit_below_one_is_refused_at_import_rather_than_silently_applied(
+    variable, module, refused
+):
     proof = subprocess.run(
-        [sys.executable, "-c", "from game.server import matches"],
-        env={**os.environ, "PLAY_MAX_MATCHES": refused},
+        [sys.executable, "-c", f"from game.server import {module}"],
+        env={**os.environ, variable: refused},
         cwd=Path(__file__).resolve().parent.parent.parent,
         capture_output=True,
         text=True,
     )
 
     assert proof.returncode != 0
-    assert "PLAY_MAX_MATCHES must be at least 1" in proof.stderr
+    assert f"{variable} must be at least 1" in proof.stderr
