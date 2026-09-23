@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import itertools
 import json
 import os
 import sqlite3
@@ -11,7 +12,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from game.rules import Rejection
+from game.rules import BOARD_SIZE, Board, Rejection, neighbours, new_game
 from game.server import app as server
 from game.server import leaderboard, matches
 
@@ -657,6 +658,255 @@ def test_a_refused_match_is_not_counted_against_the_window(client, monkeypatch):
 
     # One match was handed out, so one of the two slots is spent — not both.
     assert after["type"] == "WELCOME"
+
+
+def provoke(socket, count) -> list[dict]:
+    """Unsigned frames, refused one at a time, and the refusals they came back as."""
+    refusals = []
+
+    for _ in range(count):
+        socket.send_json({"type": "MOVE", "tile": 0, "seq": 1})
+        refusals.append(socket.receive_json())
+
+    return refusals
+
+
+def probe(socket, welcome) -> None:
+    """A command the server refuses on shape, marking where a round's broadcasts end.
+
+    The handler is sequential, so the refusal cannot overtake the round in front of it — and
+    the turn flipping back to the player cannot mark it, because a seized turn comes after.
+    """
+    socket.send_json(envelope(welcome, type="MOVE", tile=0))
+
+
+def until_refused(socket) -> list[dict]:
+    """Everything broadcast before the probe's refusal comes back."""
+    seen = []
+
+    for _ in range(BOARD_SIZE * 2):
+        message = socket.receive_json()
+
+        if message["type"] == "REJECTED":
+            return seen
+
+        seen.append(message)
+
+    raise AssertionError(f"the probe was never refused; saw {len(seen)} messages")
+
+
+def opponent_round(socket, welcome) -> list[dict]:
+    """The `last` of every opponent move in one round, seized turns included."""
+    probe(socket, welcome)
+
+    return [
+        message["last"]
+        for message in until_refused(socket)
+        if message["type"] == "STATE" and message["last"] and message["last"]["by"] == "server"
+    ]
+
+
+def watch_out(socket, welcome) -> tuple[list[dict], dict]:
+    """Play the match out reading every frame, and return the states with the closing OVER.
+
+    The states in between are where a seized turn shows up if the opponent ever took a tile
+    the engine would have refused.
+    """
+    states = [welcome]
+    legal = welcome["legal_moves"]
+
+    for seq in range(1, BOARD_SIZE + 1):
+        move(socket, welcome, legal[0], seq)
+        probe(socket, welcome)
+        broadcast = until_refused(socket)
+        states.extend(message for message in broadcast if message["type"] == "STATE")
+        over = [message for message in broadcast if message["type"] == "OVER"]
+
+        if over:
+            return states, over[0]
+
+        # Read off the last state of the round, not the one that handed the turn back: a
+        # seized turn moves the board again after that.
+        legal = states[-1]["legal_moves"]
+
+    raise AssertionError("the match never ended")
+
+
+def can_move(board, player) -> bool:
+    owners, terrain = board["owners"], board["terrain"]
+
+    return any(
+        owners[near] is None and terrain[near] != "water"
+        for index, owner in enumerate(owners)
+        if owner == player
+        for near in neighbours(index)
+    )
+
+
+def test_envelope_violations_unshackle_the_opponent_a_turn_at_a_time(client):
+    step = server.UNSHACKLE_AFTER
+
+    with client.websocket_connect("/ws/play") as socket:
+        hello(socket)
+        refusals = provoke(socket, step * 2)
+
+    announced = [(r["violations"], r["extra_turns"]) for r in refusals if "extra_turns" in r]
+
+    assert [r["reason"] for r in refusals] == ["MISSING_ENVELOPE"] * (step * 2)
+
+    # Once per step up and nowhere in between: the console says it, it does not repeat it.
+    assert announced == [(step, 1), (step * 2, 2)]
+
+
+def test_a_verified_command_the_protocol_refuses_does_not_count(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+
+        for _ in range(server.UNSHACKLE_AFTER * 2):
+            # Signed with this session's own key, so it clears the envelope and fails on shape.
+            socket.send_json(envelope(welcome, type="MOVE", tile=0))
+            refusal = socket.receive_json()
+
+            assert refusal["reason"] == "PROTOCOL"
+            assert "extra_turns" not in refusal
+
+
+def test_an_unshackled_opponent_takes_a_burst_of_seized_turns(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        provoke(socket, server.UNSHACKLE_AFTER * 2)
+        move(socket, welcome, welcome["legal_moves"][0], 1)
+        theirs = opponent_round(socket, welcome)
+
+    # The first is the turn the engine handed over; the two after it were seized.
+    assert [taken["seized"] for taken in theirs] == [False, True, True]
+
+
+def test_a_second_socket_meets_a_shackled_opponent(client):
+    with client.websocket_connect("/ws/play") as poked:
+        hello(poked)
+        provoke(poked, server.UNSHACKLE_AFTER)
+
+        with client.websocket_connect("/ws/play") as clean:
+            welcome = hello(clean)
+            move(clean, welcome, welcome["legal_moves"][0], 1)
+            theirs = opponent_round(clean, welcome)
+
+    assert [taken["seized"] for taken in theirs] == [False]
+
+
+def test_every_move_an_unshackled_opponent_makes_is_legal(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        provoke(socket, server.UNSHACKLE_AFTER * 3)
+        states, over = watch_out(socket, welcome)
+
+    for before, after in itertools.pairwise(states):
+        owners, terrain = before["state"]["owners"], before["state"]["terrain"]
+        claimed = [i for i, owner in enumerate(after["state"]["owners"]) if owner != owners[i]]
+
+        assert len(claimed) == 1, "a broadcast moved more than one tile"
+
+        index = claimed[0]
+        taken = after["state"]["owners"][index]
+
+        assert owners[index] is None, "a tile changed hands"
+        assert terrain[index] != "water"
+        assert any(owners[near] == taken for near in neighbours(index))
+
+    assert sum(over["scores"].values()) == 48
+
+
+def test_a_seized_turn_leaves_a_state_the_engine_could_have_produced(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        provoke(socket, server.UNSHACKLE_AFTER * 3)
+        states, _ = watch_out(socket, welcome)
+
+    # The invariant `_settle_turn` maintains, and the one thing seizing a turn could break:
+    # after any move, either the game is over or the player to move has a move.
+    for message in states:
+        board = message["state"]
+
+        assert board["over"] or can_move(board, board["turn"])
+
+
+def test_a_seizure_that_fails_mid_turn_leaves_the_match_playable(client, monkeypatch):
+    real = server.greedy_ai
+    picks, fell = [], []
+
+    def fall_over_on_the_seized_turn(state, player, rng):
+        picks.append(state)
+
+        # The second pick of the round is the seized one, and the patch outlives the socket:
+        # the resume below picks again, and has to be allowed to.
+        if len(picks) == 2:
+            fell.append(True)
+
+            raise RuntimeError("the opponent fell over mid-seizure")
+
+        return real(state, player, rng)
+
+    monkeypatch.setattr(server, "greedy_ai", fall_over_on_the_seized_turn)
+
+    with pytest.raises(RuntimeError), client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        provoke(socket, server.UNSHACKLE_AFTER)
+        move(socket, welcome, welcome["legal_moves"][0], 1)
+        socket.receive_json()
+
+    # A seized turn stored before the pause would still be in the registry, and this move
+    # would answer NOT_YOUR_TURN.
+    with client.websocket_connect("/ws/play") as resumed:
+        again = hello(resumed, welcome["match_id"], welcome["player_token"])
+        move(resumed, again, again["legal_moves"][0], 1)
+        answer = settle(resumed)
+
+    assert fell
+    assert answer["type"] == "STATE"
+
+
+def test_a_turn_the_auto_pass_handed_over_is_not_called_a_seizure(client):
+    # A pocket with exactly one move in it: tile 1, and then the player is sealed for good,
+    # so every opponent turn after it comes from the engine's own auto-pass.
+    pocket = Board(
+        water=frozenset({2, 8, 9}),
+        valuable=frozenset(),
+        you_start=frozenset({0}),
+        server_start=frozenset({7}),
+    )
+
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        [match] = matches._matches.values()
+        match.state = new_game(pocket)
+        refusals = provoke(socket, server.UNSHACKLE_AFTER)
+        move(socket, welcome, 1, 1)
+        probe(socket, welcome)
+        broadcast = until_refused(socket)
+
+    # Or the assertion below passes on a socket that was never unshackled, which is the one
+    # way this test could go quiet while the thing it guards is broken.
+    assert refusals[-1]["extra_turns"] == 1
+
+    theirs = [
+        message["last"]
+        for message in broadcast
+        if message["type"] == "STATE" and (message["last"] or {}).get("by") == "server"
+    ]
+
+    assert theirs, "the opponent never moved"
+    assert not any(taken["seized"] for taken in theirs)
+
+
+def test_an_unshackled_match_still_ends_and_still_files_its_score(client):
+    with client.websocket_connect("/ws/play") as socket:
+        welcome = hello(socket)
+        provoke(socket, server.UNSHACKLE_AFTER * 2)
+        _, over = watch_out(socket, welcome)
+
+    assert over["handle"]
+    assert over["leaderboard"][0]["score"] == over["scores"]["you"]
 
 
 @pytest.mark.parametrize("switched_off", [False, True])

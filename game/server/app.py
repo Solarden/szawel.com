@@ -13,7 +13,7 @@ import os
 import secrets
 import sqlite3
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from pathlib import Path
 
@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocketState
 
 from game.rules import (
+    GameState,
     Move,
     Player,
     Rejection,
@@ -111,17 +112,55 @@ class Transport(Enum):
     RATE_LIMITED = auto()
 
 
+# Envelope violations one socket sends before the opponent starts taking an extra turn a round,
+# and one more turn for every further ten.
+#
+# ponytail: 10 is a guess — low enough that a deliberate poke finds it, high enough that an
+# honest client hitting a bug does not. Tune once something real has tripped it.
+UNSHACKLE_AFTER = 10
+
+# PROTOCOL is deliberately absent. `Session.open` returns it on a frame whose signature
+# verified, which is a client holding the key and sending a malformed command — a bug
+# rather than a poke, and the taxonomy is what tells the two apart.
+ENVELOPE_VIOLATIONS = frozenset(
+    {Transport.MISSING_ENVELOPE, Transport.BAD_SIGNATURE, Transport.REPLAYED_NONCE}
+)
+
+
 @dataclass(slots=True)
 class Session:
-    """The transport session: a key minted for this connection, and the nonce it has reached.
+    """The transport session: a key minted for this connection, the nonce it has reached, and
+    the forged frames it has sent.
 
     Deliberately not the match session. `player_token` answers which player you are and outlives
     the socket; this answers whether a command is authentic and fresh, and dies with it. Two tabs
-    on one match are two connections holding two different keys.
+    on one match are two connections holding two different keys. The counter dying with the
+    socket is what makes the opponent shackled again on reload, with nothing to reset.
     """
 
     key: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     last_seq: int = 0
+    violations: int = 0
+
+    @property
+    def extra_turns(self) -> int:
+        return self.violations // UNSHACKLE_AFTER
+
+    def note(self, refusal: Transport) -> dict:
+        """The fields a refusal carries when it is the one that widens the opponent's round.
+
+        Empty on every other refusal, so the news is announced once per step up rather than
+        repeated under every later violation.
+        """
+        if refusal not in ENVELOPE_VIOLATIONS:
+            return {}
+
+        self.violations += 1
+
+        if self.violations % UNSHACKLE_AFTER:
+            return {}
+
+        return {"violations": self.violations, "extra_turns": self.extra_turns}
 
     def open(self, message: dict) -> dict | Transport:
         """The signed command inside the envelope, or the reason it is not one."""
@@ -304,7 +343,34 @@ async def _broadcast(match: matches.Match, message: dict, skip: WebSocket | None
             match.sockets.discard(socket)
 
 
-async def _handle_move(match: matches.Match, socket: WebSocket, message: dict) -> None:
+async def _opponent_turn(match: matches.Match, state: GameState, *, seized: bool = False) -> None:
+    """One opponent move, played from the state handed in.
+
+    `match.state` is only ever assigned what `apply_move` returns. A hand-built state stored
+    before the awaits below would survive one of them raising, and a match whose turn says
+    SERVER outside the loop in `_handle_move` answers every later move NOT_YOUR_TURN — through
+    reconnects, until the idle sweep reaches it.
+    """
+    await asyncio.sleep(AI_PAUSE_SECONDS)
+    # Read after the pause, which is a game-design choice and never a measurement.
+    started = time.perf_counter()
+    tile = greedy_ai(state, Player.SERVER, match.rng)
+    settled = apply_move(state, Move(Player.SERVER, tile))
+
+    # Unreachable while the opponent only ever picks from legal_moves, a seized turn included:
+    # what is seized is the turn, never the move. A Rejection stored here would poison the
+    # match for every socket on it.
+    if isinstance(settled, Rejection):
+        raise RuntimeError(f"the opponent proposed an illegal move: {settled.name}")
+
+    match.state = settled
+    theirs = {"by": Player.SERVER.value, "tile": tile, "seq": None, "seized": seized}
+    await _broadcast(match, _state_message(match, last=theirs, started=started))
+
+
+async def _handle_move(
+    match: matches.Match, socket: WebSocket, session: Session, message: dict
+) -> None:
     # `Session.open` has already required seq to be an integer, because the replay check needed it.
     tile, seq = message.get("tile"), message["seq"]
 
@@ -337,19 +403,26 @@ async def _handle_move(match: matches.Match, socket: WebSocket, message: dict) -
         # A loop, not an if: the engine's auto-pass hands the server consecutive turns whenever
         # the player is sealed off.
         while not match.state.over and match.state.turn is Player.SERVER:
-            await asyncio.sleep(AI_PAUSE_SECONDS)
-            started = time.perf_counter()
-            ai_tile = greedy_ai(match.state, Player.SERVER, match.rng)
-            settled = apply_move(match.state, Move(Player.SERVER, ai_tile))
+            await _opponent_turn(match, match.state)
 
-            # Unreachable while the opponent only ever picks from legal_moves. A Rejection
-            # stored here would poison the match for every socket on it.
-            if isinstance(settled, Rejection):
-                raise RuntimeError(f"the opponent proposed an illegal move: {settled.name}")
+            # An unshackled opponent seizes turns, never moves: the state below is handed to
+            # `apply_move` and never stored, so its tile is validated like any other. Keyed to
+            # the mover's socket, so nobody else's opponent changes.
+            #
+            # ponytail: no cap on the count — the legal-moves guard is the ceiling, and it
+            # is the board's, so the worst case is a match ending inside one round.
+            for _ in range(session.extra_turns):
+                # Nothing to seize: the engine's auto-pass has already left the turn here, so
+                # the loop above takes it and the console does not call it a seizure.
+                if match.state.turn is Player.SERVER:
+                    break
 
-            match.state = settled
-            theirs = {"by": Player.SERVER.value, "tile": ai_tile, "seq": None}
-            await _broadcast(match, _state_message(match, last=theirs, started=started))
+                # A hard condition, not greedy_ai's assert, which python -O strips: the
+                # opponent can legitimately be sealed off while the player still has moves.
+                if not legal_moves(match.state, Player.SERVER):
+                    break
+
+                await _opponent_turn(match, replace(match.state, turn=Player.SERVER), seized=True)
 
         if match.state.over:
             # The one place a match ends, so the one place a score is filed. Its own statement
@@ -433,12 +506,12 @@ async def play(socket: WebSocket) -> None:
             if isinstance(opened, Transport):
                 # Quoted back: nothing. Only the replay check has a seq it could stand behind,
                 # and one shape beats a field that comes and goes.
-                await _send(socket, _rejected(opened))
+                await _send(socket, _rejected(opened) | session.note(opened))
 
                 continue
 
             if opened.get("type") == "MOVE" and match is not None:
-                await _handle_move(match, socket, opened)
+                await _handle_move(match, socket, session, opened)
 
             else:
                 await _send(
