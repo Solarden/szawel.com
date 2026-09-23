@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="description"
           content="Independent backend consulting: ingestion, validation and audit trails for systems holding data people cannot get back."/>
-    <title>szawel.com — App-layer trust for privacy-sensitive backends</title>
+    <title>Paweł Chraczyński — backend engineering for health and device data</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
     <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
     <meta property="og:type" content="website"/>
@@ -54,10 +54,16 @@
 
         h1 { margin: 16px 0 0; font-size: 46px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800 }
         h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -.01em }
+        /* The headline is a sentence, not a slogan: at 46px on a phone it pushes both calls to
+           action below the first screen. */
+        @media (max-width: 600px) { h1 { font-size: 34px } header .lead { font-size: 19px } }
 
         /* Scoped: .lead is also the widget's leaderboard row, and a bare rule here reaches
            into it for every property the widget's own rule does not set. */
         header .lead { margin: 16px 0 0; color: var(--dim); font-size: 22px; max-width: var(--prose) }
+        header .lead b { color: var(--ink); font-weight: 700 }
+
+        .background { margin-top: 20px; font-family: var(--mono); font-size: 14px; color: var(--dim) }
 
         .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px }
 
@@ -102,6 +108,10 @@
         }
 
         .card p { color: var(--dim); max-width: 72ch }
+        .card p + p { margin-top: 10px }
+        .card b { color: var(--ink); font-weight: 700 }
+
+        .also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
 
         .case p { color: var(--dim); max-width: 72ch; margin-top: 8px }
         /* max-width none: .case p caps at 72ch, short of the two columns this spans. */
@@ -139,22 +149,56 @@
     <div class="wrap">
         <header>
             <div class="kicker">// backend engineering &middot; privacy-sensitive systems</div>
-            <h1>App-layer trust for data people cannot get back.</h1>
+            <h1>Backends for health and device data that stay correct, traceable and private.</h1>
             <p class="lead">
-                I build and review backends where a record has to be correct, attributable and still
-                provable months later: health and device data, ingestion that survives being
-                replayed, audit trails that answer <em>who changed what, and on whose authority</em>.
+                I'm <b>Pawe&#322; Chraczy&#324;ski</b>, a backend engineer. I build and review
+                backends where a record has to be correct, attributable and still provable months
+                later: ingestion that survives being replayed, validation that says why it refused,
+                audit trails that answer <em>who changed what, and on whose authority</em>.
             </p>
             <div class="cta">
-                <a class="btn go" href="#demo">See a server owning the truth</a>
-                <a class="btn" href="mailto:contact@szawel.com">contact@szawel.com</a>
-                <a class="btn" href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                <a class="btn go" href="#contact">Discuss your project</a>
+                <a class="btn" href="#demo">Explore the live demo</a>
             </div>
+            <p class="background">
+                5+ years of Python backend &middot; previously Netguru &middot; now independent, on
+                regulated health data &middot;
+                <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                   rel="noopener">LinkedIn</a> &middot;
+                <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+            </p>
         </header>
+
+        <section id="work" aria-labelledby="work-label">
+            <div class="label" id="work-label">How we can work together</div>
+            <div class="grid three">
+                <div class="card">
+                    <h2>Backend review</h2>
+                    <p><b>You arrive with:</b> a system you do not fully trust, or an audit or
+                        integration coming up.</p>
+                    <p><b>You leave with:</b> the risks named and ranked, and a fix plan in the order
+                        worth doing it.</p>
+                </div>
+                <div class="card">
+                    <h2>Integration delivery</h2>
+                    <p><b>You arrive with:</b> a device, lab or third-party API that has to feed your
+                        data safely.</p>
+                    <p><b>You leave with:</b> an agreed scope built, with tests and documentation
+                        for the team that keeps it.</p>
+                </div>
+                <div class="card">
+                    <h2>Ongoing backend support</h2>
+                    <p><b>You arrive with:</b> steady backend work and not enough senior hands for
+                        it.</p>
+                    <p><b>You leave with:</b> a monthly engagement with a defined scope and
+                        availability.</p>
+                </div>
+            </div>
+        </section>
 
         <section id="services" aria-labelledby="services-label">
             <div class="label" id="services-label">What I work on</div>
-            <div class="grid">
+            <div class="grid three">
                 <div class="card">
                     <h2>Ingestion that holds up</h2>
                     <p>
@@ -179,15 +223,12 @@
                         only as trustworthy as their firmware.
                     </p>
                 </div>
-                <div class="card">
-                    <h2>The rest of the backend</h2>
-                    <p>
-                        API design and service boundaries, search and indexing on
-                        OpenSearch/Elasticsearch, AWS, and the performance work that turns up once a
-                        system has real data in it.
-                    </p>
-                </div>
             </div>
+            <p class="also">
+                Around those: API design and service boundaries, search and indexing on
+                OpenSearch/Elasticsearch, AWS, and the performance work that turns up once a system
+                has real data in it.
+            </p>
         </section>
 
         <section class="case" aria-labelledby="case-label">
@@ -329,11 +370,14 @@
         <section id="contact" aria-labelledby="contact-label">
             <div class="label" id="contact-label">Contact</div>
             <div class="card">
-                <h2>Email is the fastest way to reach me</h2>
+                <h2>Discuss your project</h2>
                 <p>
-                    <a href="mailto:contact@szawel.com">contact@szawel.com</a>. Limited slots, and
-                    a short discovery call to confirm fit, scope and timelines. Preferred shape is a
-                    monthly package or a defined deliverable.
+                    Email <a href="mailto:contact@szawel.com">contact@szawel.com</a> with what your
+                    system does, what is failing or missing, and your timeline.
+                </p>
+                <p>
+                    Limited slots, and a short discovery call to confirm fit, scope and timelines
+                    before anything is agreed.
                 </p>
                 <p style="margin-top:10px">
                     <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
