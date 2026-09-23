@@ -244,13 +244,13 @@
   // protects the session, not against the player.
   function arm(key) {
     if (!crypto.subtle) {
-      line('client', 'KEY', 'session', 'UNAVAILABLE — signing needs https or localhost');
+      line('client', 'KEY', 'session', 'UNAVAILABLE · signing needs https or localhost');
 
       return;
     }
 
     if (typeof key !== 'string') {
-      line('client', 'KEY', 'session', 'MISSING — the server sent nothing to sign with');
+      line('client', 'KEY', 'session', 'MISSING · the server sent nothing to sign with');
 
       return;
     }
@@ -260,7 +260,7 @@
     crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
       .then(function (imported) {
         signer = imported;
-        line('client', 'KEY', 'session', 'ARMED — HMAC-SHA-256, this connection only');
+        line('client', 'KEY', 'session', 'ARMED · HMAC-SHA-256, this connection only');
       });
   }
 
@@ -304,7 +304,7 @@
     }
 
     if (!signer) {
-      line('client', 'MOVE', 'tile=' + index, 'NOT SENT — no session key to sign with');
+      line('client', 'MOVE', 'tile=' + index, 'NOT SENT · no session key to sign with');
 
       return;
     }
@@ -331,7 +331,7 @@
     }).catch(function () {
       // A chain left rejected drops every later click in silence.
       pending.delete(mine);
-      line('client', 'MOVE', 'tile=' + index, 'DROPPED — nothing reached the server');
+      line('client', 'MOVE', 'tile=' + index, 'DROPPED · nothing reached the server');
     });
   }
 
@@ -409,14 +409,14 @@
       // must not claim it was one.
       var aMove = message.tile != null;
       var gloss = REASONS[message.reason];
-      line('client', aMove ? 'MOVE' : 'COMMAND', aMove ? 'tile=' + message.tile : '—',
-        'REJECTED ' + message.reason + (gloss ? ' — ' + gloss : ''));
+      line('client', aMove ? 'MOVE' : 'COMMAND', aMove ? 'tile=' + message.tile : '·',
+        'REJECTED ' + message.reason + (gloss ? ' · ' + gloss : ''));
 
       // Sent only on the refusal that widens the opponent's round, and composed here from two
       // numbers rather than shipped as a sentence — no server prose reaches the DOM.
       if (message.extra_turns) {
         line('server', 'OPPONENT', 'violations=' + message.violations,
-          'UNSHACKLED — ' + message.extra_turns
+          'UNSHACKLED · ' + message.extra_turns
           + (message.extra_turns === 1 ? ' extra turn' : ' extra turns')
           + ' a round, every move still validated');
 
@@ -425,7 +425,7 @@
         var quip = SMITH[message.extra_turns - 1];
 
         if (quip) {
-          line('ai', 'SMITH', '—', '"' + quip + '"');
+          line('ai', 'SMITH', '·', '"' + quip + '"');
           blip();
         }
       }
@@ -440,7 +440,7 @@
 
       // No handle means nothing was filed, and a FILED line would say otherwise.
       if (message.handle) {
-        line('server', 'SCORE', message.handle, 'FILED — week resets, board is top ten');
+        line('server', 'SCORE', message.handle, 'FILED · week resets, board is top ten');
       }
     }
   }
@@ -458,9 +458,9 @@
     el('led').classList.add('off');
     el('connTxt').textContent = 'disconnected';
     boardEl.classList.add('inert');
-    line('client', 'SOCKET', '—', declined
-      ? 'CLOSED — the server declined the session: ' + declined
-      : 'CLOSED — the server is gone, and this client has no rules to carry on with. Reload to retry');
+    line('client', 'SOCKET', '·', declined
+      ? 'CLOSED · the server declined the session: ' + declined
+      : 'CLOSED · the server is gone, and this client has no rules to carry on with. Reload to retry');
   }
 
   function connect() {
