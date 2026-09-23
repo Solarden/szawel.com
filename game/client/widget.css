@@ -50,9 +50,8 @@
 /* No reset, no body rule and no page container: this file styles the widget and nothing
    around it, so every rule below is reachable only through the widget's own markup. */
 
-/* Which means the face is set here, on the widget's own roots, and never inherited from the
-   host page: the log's columns are sized in ch and only line up in a monospace. A page that
-   sets its body to anything else turns the console into ragged prose. */
+/* Which means the face is set here and never inherited from the host page: the log's columns
+   are sized in ch and line up in a monospace and nothing else. */
 .widget,
 .leaderboard,
 .note {
@@ -91,8 +90,8 @@
   width: max-content;
   height: max-content;
   padding: 11px 18px;
-  /* Named rather than inherited: the harness sets the page in mono and the apex does not,
-     and the control is part of the widget either way. */
+  /* Named because a button does not inherit font-family from .widget at all: left alone it
+     renders in the UA's Arial on both pages. */
   font-family: var(--mono);
   font-size: 14px;
   letter-spacing: .04em;
@@ -209,9 +208,10 @@
   .tile { transition: none }
 }
 
-/* Stacks well before it has to: side by side, the console's fixed columns stop fitting
-   below about 1050px. Full width, they fit again. */
-@media (max-width: 1080px) {
+/* Stacks well before it has to: side by side, the console's columns stop fitting just under
+   1120px, measured (1100 overflows the log by 7px, 1120 and up are clean). The threshold moves
+   with .logwrap's font-size, so re-measure here before changing it. */
+@media (max-width: 1140px) {
   .widget { grid-template-columns: minmax(0, 1fr) }
   .pane.left { border-right: 0; border-bottom: 1px solid var(--line) }
 }

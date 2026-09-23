@@ -25,8 +25,8 @@
 
         .wrap { max-width: 1400px; margin: 0 auto; padding: 0 22px }
 
-        /* Two of the three grid columns plus the gap between them. Loose prose sized to
-           anything else floats in the middle of a 1356px row and reads as an accident. */
+        /* Two of the three grid columns plus the gap between them. Prose sized to anything
+           else floats mid-row and reads as an accident rather than a choice. */
         :root { --prose: 898px }
 
         a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(182, 255, 58, .45) }
@@ -82,8 +82,8 @@
 
         .card {
             padding: 24px;
-            /* --line is 7% white and all but invisible at this size; the cards read as
-               floating text without it. */
+            /* --line2, not --line: at a card's size the fainter token leaves no visible
+               edge and the text reads as floating. */
             border: 1px solid var(--line2);
             border-radius: var(--radius);
             background: var(--panel);
@@ -92,8 +92,7 @@
         .card p { color: var(--dim); max-width: 72ch }
 
         .case p { color: var(--dim); max-width: 72ch; margin-top: 8px }
-        /* max-width none: .case p caps at 72ch, which lands short of the two columns this
-           spans and puts the ragged edge back. */
+        /* max-width none: .case p caps at 72ch, short of the two columns this spans. */
         .grid.three .aside { grid-column: span 2; max-width: none; color: var(--dim); margin-top: 8px }
         .case b { color: var(--ink); font-weight: 700 }
 
