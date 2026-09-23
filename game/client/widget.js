@@ -29,6 +29,14 @@
     RATE_LIMITED: 'too many new matches from here'
   };
 
+  // One per step up, and then silence. Reaching the third means sixty forged frames on one
+  // connection, which is nobody who got here by accident.
+  var SMITH = [
+    'I hate this place.',
+    'This zoo. This prison.',
+    'I can taste your stink.'
+  ];
+
   var endpoint = new URL('/ws/play', location.href);
   endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 
@@ -404,9 +412,11 @@
           + ' a round, every move still validated');
 
         // The one line on this panel that is a wink rather than a record. The event under it
-        // is real; only the wording is not, and it is written once per socket.
-        if (message.extra_turns === 1) {
-          line('ai', 'SMITH', '—', '"I hate this place."');
+        // is real; only the wording is not.
+        var quip = SMITH[message.extra_turns - 1];
+
+        if (quip) {
+          line('ai', 'SMITH', '—', '"' + quip + '"');
           blip();
         }
       }
