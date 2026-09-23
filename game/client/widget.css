@@ -154,6 +154,18 @@ body {
 .ln .ou.rejected, .ln .ou.closed { color: var(--server) }
 .ln .ou.accepted { color: var(--cyan); opacity: .85 }
 
+/* Outside the widget's two-pane grid on purpose: a strip here moves neither the board's
+   column nor the log's fixed height. */
+.leaderboard { margin-top: 22px }
+.leaderboard .paneLabel { margin-bottom: 10px }
+.leaders { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px }
+.lead { display: grid; grid-template-columns: 2ch 1fr auto; gap: 9px; font-size: 13px; border-bottom: 1px solid var(--line); padding-bottom: 5px }
+.lead .rk { color: var(--log-dim) }
+/* Ellipsis rather than a wider column: a longer word on the list must not widen the page. */
+.lead .hd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lead .pt { color: var(--you) }
+.leaders .empty { color: var(--dim); font-size: 13px }
+
 .note { margin-top: 22px; font-size: 13px; line-height: 1.7; color: var(--dim); max-width: 62ch }
 .note p { margin-bottom: 8px }
 .note b { color: var(--ink); font-weight: 400 }

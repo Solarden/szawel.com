@@ -58,9 +58,15 @@
         </div>
     </div>
 
+    <div class="leaderboard">
+        <div class="paneLabel">// leaderboard &nbsp;&mdash;&nbsp; this week, top ten</div>
+        <div class="leaders" id="leaders" aria-live="polite"><span class="empty">&mdash;</span></div>
+    </div>
+
     <div class="note">
         <p>This demo keeps a match id in your browser so you can pick a game back up. No cookies,
-            no analytics, nothing about you leaves your machine.</p>
+            no analytics, nothing about you leaves your machine. Scores are ephemeral and reset
+            weekly.</p>
         <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
             connection and hands to this page, and carries a counter the server will not accept
             twice. You can read that key in devtools &mdash; so the envelope protects the
