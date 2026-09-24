@@ -143,7 +143,7 @@ def test_a_match_plays_through_to_a_result(client):
     ("tile", "expected"),
     [
         (47, "ADJACENCY"),
-        (999, "ADJACENCY"),
+        (999, "OFF_BOARD"),
         (2, "WATER"),
         (0, "OCCUPIED"),
     ],
@@ -203,6 +203,8 @@ def test_a_move_before_hello_is_refused(client):
             "reason": "MISSING_ENVELOPE",
             "tile": None,
             "seq": None,
+            "violations": 1,
+            "next": server.UNSHACKLE_AFTER,
         }
 
 
@@ -267,6 +269,8 @@ def test_a_tampered_body_does_not_verify(client):
             "reason": "BAD_SIGNATURE",
             "tile": None,
             "seq": None,
+            "violations": 1,
+            "next": server.UNSHACKLE_AFTER,
         }
 
 
@@ -807,14 +811,12 @@ def test_every_move_an_unshackled_opponent_makes_is_legal(client):
     for before, after in itertools.pairwise(states):
         owners, terrain = before["state"]["owners"], before["state"]["terrain"]
         claimed = [i for i, owner in enumerate(after["state"]["owners"]) if owner != owners[i]]
-
-        assert len(claimed) == 1, "a broadcast moved more than one tile"
-
-        index = claimed[0]
+        index = after["last"]["tile"]
         taken = after["state"]["owners"][index]
 
-        assert owners[index] is None, "a tile changed hands"
-        assert terrain[index] != "water"
+        assert len(claimed) == 1 + after["last"].get("settled", 0), "a tile nobody accounted for"
+        assert all(owners[i] is None for i in claimed), "a tile changed hands"
+        assert all(terrain[i] != "water" for i in claimed)
         assert any(owners[near] == taken for near in neighbours(index))
 
     assert sum(over["scores"].values()) == 48
@@ -869,9 +871,8 @@ def test_a_seizure_that_fails_mid_turn_leaves_the_match_playable(client, monkeyp
     assert answer["type"] == "STATE"
 
 
-def test_a_turn_the_auto_pass_handed_over_is_not_called_a_seizure(client):
-    # A pocket with exactly one move in it: tile 1, and then the player is sealed for good,
-    # so every opponent turn after it comes from the engine's own auto-pass.
+def test_a_sealed_player_is_settled_rather_than_played_out_by_seizures(client):
+    # A pocket with exactly one move in it: tile 1, and then the player is sealed for good.
     pocket = Board(
         water=frozenset({2, 8, 9}),
         valuable=frozenset(),
@@ -885,21 +886,15 @@ def test_a_turn_the_auto_pass_handed_over_is_not_called_a_seizure(client):
         match.state = new_game(pocket)
         refusals = provoke(socket, server.UNSHACKLE_AFTER)
         move(socket, welcome, 1, 1)
-        probe(socket, welcome)
-        broadcast = until_refused(socket)
+        mine = socket.receive_json()
+        over = socket.receive_json()
 
-    # Or the assertion below passes on a socket that was never unshackled, which is the one
-    # way this test could go quiet while the thing it guards is broken.
+    # Without this the test would pass on an opponent that was never unshackled.
     assert refusals[-1]["extra_turns"] == 1
 
-    theirs = [
-        message["last"]
-        for message in broadcast
-        if message["type"] == "STATE" and (message["last"] or {}).get("by") == "server"
-    ]
-
-    assert theirs, "the opponent never moved"
-    assert not any(taken["seized"] for taken in theirs)
+    assert mine["last"] == {"by": "you", "tile": 1, "seq": 1, "settled": 42}
+    assert mine["winner"] == "server"
+    assert over["type"] == "OVER"
 
 
 def test_an_unshackled_match_still_ends_and_still_files_its_score(client):

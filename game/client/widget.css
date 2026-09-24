@@ -33,7 +33,7 @@
   --cyan: #54d8ff;
   --tile: #161d1a;
   --tile-hi: #1e2723;
-  --valuable: #142019;
+  --valuable: #1d2c22;
   --water: #0c1c24;
   --radius: 4px;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -79,15 +79,21 @@
 /* Relative so the start control can sit over the board it starts. */
 .board { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; aspect-ratio: 8/6 }
 
-#start {
+#start, .result {
   position: absolute;
-  /* The placeholder tiles are position: relative and come later in the DOM, so without this
-     they paint over the control and only the grid gaps show through it. */
+  /* The tiles are position: relative and come later in the DOM, so without this they paint
+     over the control and only the grid gaps show through it. */
   z-index: 1;
   inset: 0;
   margin: auto;
   width: max-content;
   height: max-content;
+}
+
+.result { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 18px; background: rgba(10, 13, 12, .92); border: 1px solid var(--line2); border-radius: var(--radius) }
+.result .verdict { font-family: var(--disp); font-weight: 800; font-size: 22px; letter-spacing: -.01em; color: var(--ink) }
+
+#start, .result button {
   padding: 11px 18px;
   /* Named because a button does not inherit font-family from .widget at all: left alone it
      renders in the UA's Arial on both pages. */
@@ -101,7 +107,7 @@
   cursor: pointer;
 }
 
-#start:hover { background: #c6ff52 }
+#start:hover, .result button:hover { background: #c6ff52 }
 
 .tile {
   position: relative;
@@ -127,6 +133,9 @@
 .tile.you .dot, .tile.server .dot { width: 7px; height: 7px; background: rgba(0, 0, 0, .55) }
 .tile.server .dot { border-radius: 2px }
 .tile.water .dot { width: 9px; height: 2px; border-radius: 1px; background: var(--cyan); opacity: .45 }
+/* Points get a channel of their own, a ring that survives either owner's colour. */
+.tile.valuable .dot { outline: 1.5px solid var(--dim); outline-offset: 2px }
+.tile.valuable.you .dot, .tile.valuable.server .dot { outline-color: rgba(0, 0, 0, .55) }
 
 /* The socket is gone or the game is decided: the board stops pretending it is interactive. */
 .board.inert .tile { cursor: default; opacity: .55 }
@@ -139,6 +148,7 @@
 .stat .l { font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim) }
 .turnpill { margin-left: auto; font-size: 14px; color: var(--dim); border: 1px solid var(--line2); padding: 6px 12px; border-radius: 99px }
 .turnpill b { color: var(--ink) }
+.turnpill.thinking { border-color: var(--server); animation: blink 1.2s infinite }
 
 .conn { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dim); margin-bottom: 4px }
 .led { width: 7px; height: 7px; border-radius: 99px; background: var(--you); box-shadow: 0 0 8px var(--you); animation: blink 2s infinite }
@@ -203,7 +213,7 @@
 /* The LED blinks forever and the board pops in 48 tiles at once, on a page a visitor
    did not open to watch an animation. */
 @media (prefers-reduced-motion: reduce) {
-  .tile, .ln, .led { animation: none }
+  .tile, .ln, .led, .turnpill { animation: none }
   .tile { transition: none }
 }
 
@@ -213,4 +223,13 @@
 @media (max-width: 1140px) {
   .widget { grid-template-columns: minmax(0, 1fr) }
   .pane.left { border-right: 0; border-bottom: 1px solid var(--line) }
+}
+
+/* Phone width: seq and ts give way, and the outcome takes a row of its own under the rest, so
+   the column a reader came for is never the one squeezed to a sliver. */
+@media (max-width: 560px) {
+  .logwrap { --cols: 6ch 8ch minmax(0, 1fr) }
+  .loghead .row > :nth-child(-n+2), .ln > :nth-child(-n+2) { display: none }
+  .loghead .row > :last-child, .ln .ou { grid-column: 1 / -1 }
+  .ln { padding-bottom: 4px; border-bottom: 1px solid var(--line) }
 }
