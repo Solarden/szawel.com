@@ -133,6 +133,20 @@
                     <p class="n">0 vendor accounts</p>
                     <p class="more">Read the case study &rarr;</p>
                 </a>
+                <a class="card work" href="work/dns-watch.html">
+                    <h2>Knowing what every device in the house talks to</h2>
+                    <p>DNS and router flow records joined per device, judged by a model on my own
+                        hardware so no cloud API sees the traffic.</p>
+                    <p class="n">5.3M flow records in 18 days</p>
+                    <p class="more">Read the case study &rarr;</p>
+                </a>
+                <a class="card work" href="work/isp-watch.html">
+                    <h2>An ISP contract, checked by measurement rather than by complaint</h2>
+                    <p>A probe a minute, each outage pinned to the layer that caused it, and a
+                        monthly SLA report that arrives even when the month was clean.</p>
+                    <p class="n">0 ISP-outage minutes in 25,000+ probes</p>
+                    <p class="more">Read the case study &rarr;</p>
+                </a>
             </div>
         </section>
     </div>
@@ -142,16 +156,21 @@
             <div class="label" id="demo-label">Live &middot; the console is the point</div>
             <p>
                 Below is a game. The game is the bait; the panel beside it is the work. The browser
-                holds no rules at all. Every click is a command sent to a server, decided
-                there, and answered with either a new state or a typed reason for refusal. Every
-                command after the handshake is signed and carries a counter the server will not
-                accept twice. Every number on that panel is measured; none of it is decoration.
+                holds no rules: every click is a command the server decides, answered with a new
+                state or a typed reason for refusal. Every number on that panel is measured.
             </p>
+            <ol class="steps">
+                <li><b>Press Start and take a tile</b> next to one you hold. The server answers with
+                    the new state, and the console logs the command, its latency and the verdict.</li>
+                <li><b>Watch the opponent move.</b> Its turn is computed on the server too; the
+                    browser only draws what it is told.</li>
+                <li><b>Click a tile you do not border.</b> The server refuses it and says why:
+                    <code>REJECTED ADJACENCY</code>, not a silent no-op.</li>
+            </ol>
             <p>
-                It demonstrates real-time state synchronisation, server-side validation, session
-                resumption and replay protection. It does not demonstrate FHIR or PHI handling: it is
-                the same authoritative-state pattern I ship in production APIs, minus the part where
-                it touches anyone's data.
+                The same validation applies to device events, webhooks and any other request that
+                changes state. What this does not show is FHIR or PHI handling: it is the pattern I
+                ship in production APIs, minus the part where it touches anyone's data.
             </p>
         </div>
         <div class="widget">
@@ -218,18 +237,51 @@
                 connect to does. It keeps a match id in your browser so you can pick a game back up.
                 No cookies, no analytics, nothing else about you is kept. Scores are ephemeral and
                 reset weekly.</p>
-            <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
-                connection and hands to this page, and carries a counter the server will not accept
-                twice. You can read that key in devtools, so the envelope protects the
-                <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
-                illegal moves, and nothing else.</p>
-            <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
-                same match in a second tab and both print the same digest. It is not a security
-                control: the server computes it and the client prints it.</p>
+            <details>
+                <summary>How the signing and the state digest work</summary>
+                <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
+                    connection and hands to this page, and carries a counter the server will not accept
+                    twice. You can read that key in devtools, so the envelope protects the
+                    <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
+                    illegal moves, and nothing else.</p>
+                <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the
+                    same match in a second tab and both print the same digest. It is not a security
+                    control: the server computes it and the client prints it.</p>
+            </details>
         </div>
     </section>
 
     <div class="wrap">
+        <section id="about" aria-labelledby="about-label">
+            <div class="label" id="about-label">About</div>
+            <div class="about">
+                <p>
+                    I didn't start in software. I spent my first working years building solar farms,
+                    and the part I loved most was the SCADA cabinets and the way they talked to each
+                    other. When the company I worked for ran into cash-flow trouble, I decided to bet
+                    on myself, learned Python, and moved into backend development.
+                </p>
+                <p>
+                    At Netguru I kept ending up on health-data projects, and over the years that
+                    became my specialisation. A breach at a Polish medical laboratory, when patients'
+                    lab results ended up online, made it personal. Since then I try to break my own
+                    applications before anyone else does.
+                </p>
+                <p>
+                    The homelab started with a Xiaomi robot vacuum, around the time photos taken by
+                    test robot vacuums in people's homes, one of a woman on the toilet, were shared
+                    online by the contractors paid to label them. I stopped trusting companies with
+                    my data after that. If I have to be angry at someone for how it is kept, I would
+                    rather it be myself, so the house runs on hardware I control.
+                </p>
+                <p>
+                    Away from the keyboard I listen to far too much gabber, follow everything
+                    happening in astronomy and spaceflight, and spend some weekends at the shooting
+                    range with my dad.
+                </p>
+            </div>
+        </section>
+
         <section id="contact" aria-labelledby="contact-label">
             <div class="label" id="contact-label">Contact</div>
             <div class="card split">
