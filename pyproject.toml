@@ -29,7 +29,7 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["game"]
+testpaths = ["game", "demo"]
 # Generous: the whole suite runs in well under a second, so this only ever catches a hang.
 timeout = 10
 

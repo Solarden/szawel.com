@@ -21,6 +21,7 @@ SCANNED = [
     GAME.parent / "index.html",
     GAME.parent / "site.css",
     GAME.parent / "work",
+    GAME.parent / "demo" / "yoman" / "static",
 ]
 
 # The game's backend, and the site's own origin: og: tags must be absolute to be previewed.
