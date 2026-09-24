@@ -29,10 +29,6 @@ jobs:
       - name: Assemble the published site
         # Only what the site actually serves. The server, the tests and the tooling
         # stay readable on GitHub without being fetchable under the domain.
-        # game/client is copied whole, fonts/ included — an explicit file list here
-        # would 404 the webfonts silently.
-        # Unconditional: index.html takes its palette from widget.css, so a tree
-        # without it is an unstyled landing page.
         run: |
           mkdir -p _site
           cp index.html _site/
@@ -40,7 +36,13 @@ jobs:
           cp CNAME _site/
           # Link previews and the tab icon; a missing og.png fails silently in every share.
           cp og.png favicon.svg _site/
+          # The page styles live in one file for the apex and every case study; work/ is
+          # copied whole so a new case study needs no edit here.
+          cp site.css _site/
+          cp -R work _site/work
           mkdir -p _site/game
+          # Whole, fonts/ included: an explicit file list would 404 the webfonts silently.
+          # Unconditional: every page takes its palette from widget.css.
           cp -R game/client _site/game/client
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

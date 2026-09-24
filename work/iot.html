@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="description" content="Case study: consumer Tuya BK7231N controllers reflashed to ESPHome, authenticated at the device layer, with nothing accepting an inbound connection."/>
+    <title>A shelf of IoT devices with no vendor in the path — Paweł Chraczyński</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+    <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
+    <meta property="og:type" content="article"/>
+    <meta property="og:url" content="https://www.szawel.com/work/iot.html"/>
+    <meta property="og:title" content="A shelf of IoT devices with no vendor in the path"/>
+    <meta property="og:description" content="Case study: consumer Tuya BK7231N controllers reflashed to ESPHome, authenticated at the device layer, with nothing accepting an inbound connection."/>
+    <meta property="og:image" content="https://www.szawel.com/og.png"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <link rel="stylesheet" href="../game/client/widget.css"/>
+    <link rel="stylesheet" href="../site.css"/>
+</head>
+<body>
+<main>
+    <div class="wrap">
+        <header>
+            <a class="back" href="../#work-done">&larr; szawel.com</a>
+            <div class="kicker">Case study &middot; de-clouding a shelf of IoT devices</div>
+            <h1>A shelf of IoT devices with no vendor in the path</h1>
+            <p class="meta">ESPHome &middot; BK7231N &middot; encrypted native API &middot; <a href="https://github.com/Solarden/esphome-cht8305-bitbang" target="_blank" rel="noopener">the sensor component on GitHub</a></p>
+        </header>
+
+        <section class="case">
+            <div class="grid three">
+                <div class="card">
+                    <h2>Problem</h2>
+                    <p>
+                        Cheap consumer infrared controllers built on the Tuya BK7231N ship tethered to
+                        a vendor cloud: an account, an outbound tunnel that is always up, and a third
+                        party in the path of every button press inside the house. The device works
+                        until somebody else's service does not.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Action</h2>
+                    <p>
+                        Reflashed the chip to ESPHome and moved every control path onto an
+                        authenticated one. The controller talks to each node over ESPHome's encrypted
+                        native API with a per-node key; the unauthenticated per-device web dashboard is
+                        gone from the firmware; the build dashboard sits behind an authenticating
+                        reverse proxy with automated certificates instead of on a flat network. Nothing
+                        accepts an inbound connection from the internet.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Outcome</h2>
+                    <p>
+                        No vendor account, no cloud dependency, no third party in the path, and
+                        a control plane authenticated at the device layer rather than trusted because
+                        it happens to be on the LAN.
+                    </p>
+                </div>
+                <p class="aside">
+                    Two details worth keeping, because they are the kind you only have if you did it.
+                    Removing the dashboard from the configuration did not close it: <b>old firmware keeps
+                    serving what it was flashed with</b>, so it stayed open until each node was re-flashed.
+                    And the on-board temperature sensor self-heats about 20&nbsp;&deg;C inside a sealed
+                    case, so the reading is corrected with a calibration offset against a reference
+                    thermometer. Hardware is never the ideal on paper.
+                </p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="card split">
+                <div>
+                    <h2>Discuss your project</h2>
+                    <p>
+                        Email me with what your system does, what is failing or missing, and your
+                        timeline.
+                    </p>
+                    <p>
+                        Limited slots, and a short discovery call to confirm fit, scope and timelines
+                        before anything is agreed.
+                    </p>
+                </div>
+                <div class="actions">
+                    <a class="btn go" href="mailto:contact@szawel.com">contact@szawel.com</a>
+                    <span class="links">
+                        <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                           rel="noopener">LinkedIn</a>
+                        &middot;
+                        <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                Services provided by <b>SOLARDEN PAWE&#321; CHRACZY&#323;SKI</b>, a registered business
+                in Poland (EU), as independent consulting; scope and deliverables agreed in
+                writing.
+            </p>
+            <p>&copy; <span id="y"></span> szawel.com &middot; <a href="../">Back to the start</a></p>
+        </footer>
+    </div>
+</main>
+
+<script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

@@ -21,122 +21,7 @@
     <!-- Before the page's own rules, so a collision resolves in the page's favour. The widget's
          tokens are the page's tokens: there is no second palette to keep in step. -->
     <link rel="stylesheet" href="game/client/widget.css"/>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0 }
-
-        body {
-            background: var(--bg);
-            color: var(--ink);
-            font-family: var(--disp);
-            font-size: 18px;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        main { padding: 48px 0 }
-
-        .wrap { max-width: 1400px; margin: 0 auto; padding: 0 22px }
-
-        /* Two of the three grid columns plus the gap between them. Prose sized to anything
-           else floats mid-row and reads as an accident rather than a choice. */
-        :root { --prose: 898px }
-
-        a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(182, 255, 58, .45) }
-        a:hover { border-bottom-color: var(--you) }
-
-        .kicker {
-            font-family: var(--mono);
-            font-size: 13px;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            color: var(--dim);
-        }
-
-        h1 { margin: 16px 0 0; font-size: 46px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800 }
-        h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -.01em }
-        /* The headline is a sentence, not a slogan: at 46px on a phone it pushes both calls to
-           action below the first screen. */
-        @media (max-width: 600px) { h1 { font-size: 34px } header .lead { font-size: 19px } }
-
-        /* Scoped: .lead is also the widget's leaderboard row, and a bare rule here reaches
-           into it for every property the widget's own rule does not set. */
-        header .lead { margin: 16px 0 0; color: var(--dim); font-size: 22px; max-width: var(--prose) }
-        header .lead b { color: var(--ink); font-weight: 700 }
-
-        .background { margin-top: 20px; font-family: var(--mono); font-size: 14px; color: var(--dim) }
-
-        .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px }
-
-        .btn {
-            font-family: var(--mono);
-            font-size: 15px;
-            padding: 12px 18px;
-            border: 1px solid var(--line2);
-            border-radius: var(--radius);
-            background: rgba(255, 255, 255, .02);
-        }
-
-        .btn:hover { background: rgba(255, 255, 255, .06); border-bottom-color: var(--line2) }
-        .btn.go { color: var(--bg); background: var(--you); border-color: var(--you) }
-        .btn.go:hover { background: #c6ff52; border-color: #c6ff52 }
-
-        section { margin-top: 48px }
-
-        .label {
-            font-family: var(--mono);
-            font-size: 13px;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            color: var(--dim);
-            margin-bottom: 16px;
-        }
-
-        .grid { display: grid; grid-template-columns: 1fr; gap: 16px }
-
-        @media (min-width: 820px) {
-            .grid { grid-template-columns: 1fr 1fr }
-            .grid.three { grid-template-columns: repeat(3, 1fr) }
-        }
-
-        .card {
-            padding: 24px;
-            /* --line2, not --line: at a card's size the fainter token leaves no visible
-               edge and the text reads as floating. */
-            border: 1px solid var(--line2);
-            border-radius: var(--radius);
-            background: var(--panel);
-        }
-
-        .card p { color: var(--dim); max-width: 72ch }
-        .card p + p { margin-top: 10px }
-        .card b { color: var(--ink); font-weight: 700 }
-
-        .also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
-
-        .case p { color: var(--dim); max-width: 72ch; margin-top: 8px }
-        /* max-width none: .case p caps at 72ch, short of the two columns this spans. */
-        .grid.three .aside { grid-column: span 2; max-width: none; color: var(--dim); margin-top: 8px }
-        .case b { color: var(--ink); font-weight: 700 }
-
-        /* Wider than the prose column on purpose: one console line is ~81ch, and the widget
-           is a figure rather than a paragraph. */
-        #demo { max-width: 1400px; margin: 48px auto 0; padding: 0 22px }
-
-        #demo .intro { margin-bottom: 24px }
-        #demo .intro p { color: var(--dim); max-width: var(--prose); margin-top: 16px }
-        #demo .note { max-width: var(--prose) }
-
-        footer {
-            margin-top: 48px;
-            padding-top: 24px;
-            border-top: 1px solid var(--line);
-            color: var(--dim);
-            font-size: 15px;
-        }
-
-        footer p { margin-top: 6px }
-        footer b { color: var(--ink); font-weight: 700 }
-    </style>
+    <link rel="stylesheet" href="site.css"/>
     <!-- No JavaScript means no widget, not a broken one: the landing page is complete without
          it, and a stalled game is a worse first impression than no game. -->
     <noscript>
@@ -231,45 +116,23 @@
             </p>
         </section>
 
-        <section class="case" aria-labelledby="case-label">
-            <div class="label" id="case-label">Evidence &middot; de-clouding a shelf of IoT devices</div>
-            <div class="grid three">
-                <div class="card">
-                    <h2>Problem</h2>
-                    <p>
-                        Cheap consumer infrared controllers built on the Tuya BK7231N ship tethered to
-                        a vendor cloud: an account, an outbound tunnel that is always up, and a third
-                        party in the path of every button press inside the house. The device works
-                        until somebody else's service does not.
-                    </p>
-                </div>
-                <div class="card">
-                    <h2>Action</h2>
-                    <p>
-                        Reflashed the chip to ESPHome and moved every control path onto an
-                        authenticated one. The controller talks to each node over ESPHome's encrypted
-                        native API with a per-node key; the unauthenticated per-device web dashboard is
-                        gone from the firmware; the build dashboard sits behind an authenticating
-                        reverse proxy with automated certificates instead of on a flat network. Nothing
-                        accepts an inbound connection from the internet.
-                    </p>
-                </div>
-                <div class="card">
-                    <h2>Outcome</h2>
-                    <p>
-                        No vendor account, no cloud dependency, no third party in the path, and
-                        a control plane authenticated at the device layer rather than trusted because
-                        it happens to be on the LAN.
-                    </p>
-                </div>
-                <p class="aside">
-                Two details worth keeping, because they are the kind you only have if you did it.
-                Removing the dashboard from the configuration did not close it: <b>old firmware keeps
-                serving what it was flashed with</b>, so it stayed open until each node was re-flashed.
-                And the on-board temperature sensor self-heats about 20&nbsp;&deg;C inside a sealed
-                case, so the reading is corrected with a calibration offset against a reference
-                    thermometer. Hardware is never the ideal on paper.
-                </p>
+        <section id="work-done" aria-labelledby="done-label">
+            <div class="label" id="done-label">Selected work</div>
+            <div class="grid">
+                <a class="card work" href="work/yoman.html">
+                    <h2>Every change to the house leaves a dated, attributable row</h2>
+                    <p>One audit trail for automated runs, notifications and hand edits, read by a
+                        dashboard that can write almost nothing.</p>
+                    <p class="n">3,800+ rows since July 2026</p>
+                    <p class="more">Read the case study &rarr;</p>
+                </a>
+                <a class="card work" href="work/iot.html">
+                    <h2>A shelf of IoT devices with no vendor in the path</h2>
+                    <p>Tuya BK7231N controllers reflashed to ESPHome, authenticated at the device
+                        layer, and reachable from nowhere on the internet.</p>
+                    <p class="n">0 vendor accounts</p>
+                    <p class="more">Read the case study &rarr;</p>
+                </a>
             </div>
         </section>
     </div>
@@ -369,22 +232,27 @@
     <div class="wrap">
         <section id="contact" aria-labelledby="contact-label">
             <div class="label" id="contact-label">Contact</div>
-            <div class="card">
-                <h2>Discuss your project</h2>
-                <p>
-                    Email <a href="mailto:contact@szawel.com">contact@szawel.com</a> with what your
-                    system does, what is failing or missing, and your timeline.
-                </p>
-                <p>
-                    Limited slots, and a short discovery call to confirm fit, scope and timelines
-                    before anything is agreed.
-                </p>
-                <p style="margin-top:10px">
-                    <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
-                       rel="noopener">LinkedIn</a>
-                    &middot;
-                    <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
-                </p>
+            <div class="card split">
+                <div>
+                    <h2>Discuss your project</h2>
+                    <p>
+                        Email me with what your system does, what is failing or missing, and your
+                        timeline.
+                    </p>
+                    <p>
+                        Limited slots, and a short discovery call to confirm fit, scope and timelines
+                        before anything is agreed.
+                    </p>
+                </div>
+                <div class="actions">
+                    <a class="btn go" href="mailto:contact@szawel.com">contact@szawel.com</a>
+                    <span class="links">
+                        <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                           rel="noopener">LinkedIn</a>
+                        &middot;
+                        <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                    </span>
+                </div>
             </div>
         </section>
 

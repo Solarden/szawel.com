@@ -40,7 +40,8 @@ def a_forgetful_window():
 
 @pytest.fixture(autouse=True)
 def without_the_thinking_pause(monkeypatch):
-    # The pause is a game-design choice, not a delay under test, and a full match holds 34.
+    # The pause is a game-design choice, not a delay under test, and a match pays it on every
+    # opponent move.
     monkeypatch.setattr(server, "AI_PAUSE_SECONDS", 0)
 
 
@@ -85,6 +86,7 @@ def drain(socket, wanted) -> dict:
 
     for _ in range(8):
         message = socket.receive_json()
+
         if wanted(message):
             return message
 
@@ -526,8 +528,8 @@ def test_a_resumed_finished_match_still_sees_the_board(client):
 
     with client.websocket_connect("/ws/play") as socket:
         resumed = hello(socket, welcome["match_id"], welcome["player_token"])
-        # Whatever the next frame is, it is the answer to this move and not a replayed OVER —
-        # which is why WELCOME is the only door the board reaches a returning player through.
+        # The next frame answers this move rather than replaying OVER, so WELCOME is the only
+        # place a returning player sees the finished board.
         move(socket, resumed, 0)
         answered = socket.receive_json()
 

@@ -54,6 +54,7 @@ class Board:
     # silent: a start on water expands from inside a wall, a valuable on water loses its points.
     def __post_init__(self) -> None:
         tiles = self.water | self.valuable | self.you_start | self.server_start
+
         if any(not 0 <= index < BOARD_SIZE for index in tiles):
             raise ValueError("a board index is off the board")
         if self.water & (self.valuable | self.you_start | self.server_start):
@@ -118,6 +119,7 @@ def _tiles_of(state: GameState, player: Player) -> tuple[int, ...]:
 
 def legal_moves(state: GameState, player: Player) -> frozenset[int]:
     held = _tiles_of(state, player)
+
     if state.over:
         return frozenset()
 
@@ -134,6 +136,7 @@ def _settle_turn(state: GameState) -> GameState:
         return state
 
     opponent = state.turn.opponent
+
     if legal_moves(state, opponent):
         return replace(state, turn=opponent)
 
@@ -188,6 +191,7 @@ def winner(state: GameState) -> Player | None:
         raise ValueError("winner() is only meaningful once is_over(state)")
 
     you, server = score(state, Player.YOU), score(state, Player.SERVER)
+
     if you == server:
         return None
 

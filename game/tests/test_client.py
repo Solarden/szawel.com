@@ -14,12 +14,16 @@ from game.server.app import Transport
 
 GAME = Path(__file__).resolve().parent.parent
 CLIENT = GAME / "client"
-# dev.html is not published, but P7 transplants its markup into the apex page, so a CDN
-# reference parked there reaches the domain the long way round.
-SCANNED = [CLIENT, GAME / "server" / "dev.html", GAME.parent / "index.html"]
+# Everything the domain serves, plus dev.html: unpublished, but the apex reuses its markup.
+SCANNED = [
+    CLIENT,
+    GAME / "server" / "dev.html",
+    GAME.parent / "index.html",
+    GAME.parent / "site.css",
+    GAME.parent / "work",
+]
 
-# The hosts the client is allowed to name: P3 points it at the game's own backend, and the
-# apex's og: tags must name the page's own origin, because link previews resolve nothing relative.
+# The game's backend, and the site's own origin: og: tags must be absolute to be previewed.
 OWN_HOSTS = {"play.szawel.com", "www.szawel.com"}
 
 # An <a> points wherever the page likes and fetches nothing, so its opening tags come out
@@ -37,8 +41,8 @@ def test_the_client_labels_every_rejection_reason():
 
     labelled = set(re.findall(r"^\s*(\w+):", table.group(1), re.MULTILINE))
 
-    # Equality, not a subset: a missing key is the hole P4's transport-side reasons arrive
-    # through, and a stale one is a code the server can no longer send.
+    # Equality, not a subset: a missing key is a reason the client cannot label, and a stale one
+    # is a code the server never sends.
     assert labelled == set(Rejection.__members__) | set(Transport.__members__)
 
 
@@ -51,9 +55,12 @@ def test_the_client_loads_nothing_from_a_third_party():
     for path in read:
         hosts |= set(re.findall(r"[a-z]+://([^/\s'\")]+)", ANCHOR.sub("", path.read_text())))
 
+    published = {"widget.js", "widget.css", "dev.html", "index.html", "site.css"}
+
     # Named, because `hosts` is empty both when the client is clean and when a rename left this
     # scanning nothing — and a scan that quietly passes is worse than no scan.
-    assert {p.name for p in read} >= {"widget.js", "widget.css", "dev.html", "index.html"}
+    assert {p.name for p in read} >= published
+    assert any(p.parent.name == "work" for p in read), "no case study under work/ was scanned"
     assert hosts <= OWN_HOSTS
 
 

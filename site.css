@@ -1,0 +1,134 @@
+/* The page styles, shared by the apex and every page under work/. Tokens and fonts come
+   from widget.css, which every page loads first. */
+* { box-sizing: border-box; margin: 0; padding: 0 }
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--disp);
+    font-size: 18px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+main { padding: 48px 0 }
+
+.wrap { max-width: 1400px; margin: 0 auto; padding: 0 22px }
+
+/* Two of the three grid columns plus the gap between them. Prose sized to anything
+   else floats mid-row and reads as an accident rather than a choice. */
+:root { --prose: 898px }
+
+a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(182, 255, 58, .45) }
+a:hover { border-bottom-color: var(--you) }
+
+.kicker {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--dim);
+}
+
+h1 { margin: 16px 0 0; font-size: 46px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800 }
+h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -.01em }
+/* The headline is a sentence, not a slogan: at 46px on a phone it pushes both calls to
+   action below the first screen. */
+@media (max-width: 600px) { h1 { font-size: 34px } header .lead { font-size: 19px } }
+
+/* Scoped: .lead is also the widget's leaderboard row, and a bare rule here reaches
+   into it for every property the widget's own rule does not set. */
+header .lead { margin: 16px 0 0; color: var(--dim); font-size: 22px; max-width: var(--prose) }
+header .lead b { color: var(--ink); font-weight: 700 }
+
+.background { margin-top: 20px; font-family: var(--mono); font-size: 14px; color: var(--dim) }
+
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px }
+
+.btn {
+    font-family: var(--mono);
+    font-size: 15px;
+    padding: 12px 18px;
+    border: 1px solid var(--line2);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, .02);
+}
+
+.btn:hover { background: rgba(255, 255, 255, .06); border-bottom-color: var(--line2) }
+.btn.go { color: var(--bg); background: var(--you); border-color: var(--you) }
+.btn.go:hover { background: #c6ff52; border-color: #c6ff52 }
+
+section { margin-top: 48px }
+
+.label {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 16px;
+}
+
+.grid { display: grid; grid-template-columns: 1fr; gap: 16px }
+
+@media (min-width: 820px) {
+    .grid { grid-template-columns: 1fr 1fr }
+    .grid.three { grid-template-columns: repeat(3, 1fr) }
+}
+
+.card {
+    padding: 24px;
+    /* --line2, not --line: at a card's size the fainter token leaves no visible
+       edge and the text reads as floating. */
+    border: 1px solid var(--line2);
+    border-radius: var(--radius);
+    background: var(--panel);
+}
+
+.card p { color: var(--dim); max-width: 72ch }
+.card p + p { margin-top: 10px }
+.card b { color: var(--ink); font-weight: 700 }
+
+.also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
+
+/* Full width to line up with the footer (and the widget on the apex), so the right half carries
+   the action instead of sitting empty beside a 72ch paragraph. */
+@media (min-width: 820px) {
+    #contact .card.split { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center }
+    #contact .card.split .actions { align-items: center }
+}
+#contact .actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start }
+#contact .actions .links { font-size: 15px; color: var(--dim) }
+
+.case p { color: var(--dim); max-width: 72ch; margin-top: 8px }
+/* max-width none: .case p caps at 72ch, short of the two columns this spans. */
+.grid.three .aside { grid-column: span 2; max-width: none; color: var(--dim); margin-top: 8px }
+.case b { color: var(--ink); font-weight: 700 }
+
+/* Wider than the prose column: the widget is a figure; widget.css says why it needs the width. */
+#demo { max-width: 1400px; margin: 48px auto 0; padding: 0 22px }
+
+#demo .intro { margin-bottom: 24px }
+#demo .intro p { color: var(--dim); max-width: var(--prose); margin-top: 16px }
+#demo .note { max-width: var(--prose) }
+
+footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 15px;
+}
+
+footer p { margin-top: 6px }
+footer b { color: var(--ink); font-weight: 700 }
+
+/* Selected work: a card is the whole link, so the target is the card and not a word in it. */
+a.work { display: block; border-bottom: 1px solid var(--line2) }
+a.work:hover { border-color: var(--you); background: var(--tile) }
+a.work .n { font-family: var(--disp); font-weight: 800; font-size: 30px; color: var(--you); letter-spacing: -.02em }
+a.work .more { margin-top: 12px; font-family: var(--mono); font-size: 14px; color: var(--ink) }
+
+.back { font-family: var(--mono); font-size: 14px }
+.back + .kicker { margin-top: 32px }
+.meta { margin-top: 16px; font-family: var(--mono); font-size: 14px; color: var(--dim) }

@@ -56,8 +56,7 @@ MINT_LIMIT = int(os.environ.get("PLAY_MINT_LIMIT", "").strip() or "10")
 MINT_WINDOW_SECONDS = 60
 
 if MINT_LIMIT < 1:
-    # Zero reads as "no limit" to anyone setting it and does the opposite, exactly as it does
-    # for the match cap: every new visitor refused while /health still answers ok.
+    # Zero refuses every new visitor while /health still answers ok; see MAX_MATCHES.
     raise ValueError(f"PLAY_MINT_LIMIT must be at least 1, got {MINT_LIMIT}")
 
 # Addresses, and only here. Nothing in this dict is written down, and a minute after an
@@ -68,10 +67,8 @@ _minted: dict[str, list[float]] = {}
 def _may_mint(address: str) -> bool:
     """One rolling window per address, with the whole table swept on the way through.
 
-    What it bounds is HELLO spam minting matches on a box with 4 GB of RAM — the ceiling
-    `MAX_MATCHES` holds from the other side. It is not an anti-farming control: a match takes
-    tens of seconds to play out, so nobody farming the leaderboard comes near this limit, and
-    the weekly reset is what answers farming.
+    It bounds HELLO spam minting matches in 4 GB of RAM, the ceiling `MAX_MATCHES` holds from the
+    other side. Not an anti-farming control: the weekly reset answers farming.
 
     ponytail: the sweep is O(addresses) and runs only on the mint path, which is the path
     being limited. 10 a minute is a guess — tune it once something real has tripped it.
@@ -132,10 +129,8 @@ class Session:
     """The transport session: a key minted for this connection, the nonce it has reached, and
     the forged frames it has sent.
 
-    Deliberately not the match session. `player_token` answers which player you are and outlives
-    the socket; this answers whether a command is authentic and fresh, and dies with it. Two tabs
-    on one match are two connections holding two different keys. The counter dying with the
-    socket is what makes the opponent shackled again on reload, with nothing to reset.
+    Not the match session: `player_token` outlives the socket, this dies with it, so a reload
+    re-shackles the opponent with nothing to reset.
     """
 
     key: bytes = field(default_factory=lambda: secrets.token_bytes(32))
@@ -196,8 +191,8 @@ class Session:
         return command
 
 
-# No /docs, /redoc or /openapi.json: they describe the one route this app serves and would
-# otherwise be reachable wherever this process is served.
+# No /docs, /redoc or /openapi.json: nothing here is an API for anyone else, and they would be
+# reachable wherever this process is served.
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 
@@ -285,20 +280,21 @@ def _over_message(match: matches.Match) -> dict:
 
 
 def _rejected(reason: Rejection | Transport, *, tile: object = None, seq: object = None) -> dict:
-    # Both taxonomies reach the wire as the member name, so nothing has to be kept in step
-    # when Transport grows new reasons.
+    # Both taxonomies reach the wire as the member name: no mapping to keep in step.
     return {"type": "REJECTED", "reason": reason.name, "tile": tile, "seq": seq}
 
 
 async def _receive(socket: WebSocket) -> dict | None:
     """The next frame as a JSON object, or None for anything that is not one."""
     frame = await socket.receive()
+
     if frame["type"] == "websocket.disconnect":
         raise WebSocketDisconnect(frame.get("code", 1000), frame.get("reason"))
 
     # A binary frame carries no "text", and starlette's receive_text would raise KeyError on it.
     # An unhandled exception is the one answer a page promising reason codes must never give.
     text = frame.get("text")
+
     if text is None:
         return None
 
@@ -352,7 +348,7 @@ async def _opponent_turn(match: matches.Match, state: GameState, *, seized: bool
     reconnects, until the idle sweep reaches it.
     """
     await asyncio.sleep(AI_PAUSE_SECONDS)
-    # Read after the pause, which is a game-design choice and never a measurement.
+    # Started after the pause: see AI_PAUSE_SECONDS.
     started = time.perf_counter()
     tile = greedy_ai(state, Player.SERVER, match.rng)
     settled = apply_move(state, Move(Player.SERVER, tile))
@@ -405,10 +401,9 @@ async def _handle_move(
         while not match.state.over and match.state.turn is Player.SERVER:
             await _opponent_turn(match, match.state)
 
-            # An unshackled opponent seizes turns, never moves: the state below is handed to
-            # `apply_move` and never stored, so its tile is validated like any other. Keyed to
-            # the mover's socket, so nobody else's opponent changes.
-            #
+            # Seizes turns, never moves: each tile still goes through `apply_move`. Keyed to the
+            # mover's socket, so nobody else's opponent changes.
+
             # ponytail: no cap on the count — the legal-moves guard is the ceiling, and it
             # is the board's, so the worst case is a match ending inside one round.
             for _ in range(session.extra_turns):
@@ -442,9 +437,11 @@ async def play(socket: WebSocket) -> None:
     try:
         while True:
             message = await _receive(socket)
+
             if message is None:
                 # Nothing parsed, so there is no seq to quote back.
                 await _send(socket, _rejected(Transport.PROTOCOL))
+
                 continue
 
             kind = message.get("type")
@@ -488,8 +485,8 @@ async def play(socket: WebSocket) -> None:
                         "match_id": match.id,
                         "player_token": match.player_token,
                         "session_key": session.key.hex(),
-                        # Beside the spread, not inside `_view`, which also feeds every STATE:
-                        # the board changes once a match and the payload tile is a measurement.
+                        # WELCOME only: `_view` also feeds every STATE, and the board changes
+                        # once per match.
                         **_board(),
                         **_view(match),
                     },
@@ -504,8 +501,7 @@ async def play(socket: WebSocket) -> None:
             opened = session.open(message)
 
             if isinstance(opened, Transport):
-                # Quoted back: nothing. Only the replay check has a seq it could stand behind,
-                # and one shape beats a field that comes and goes.
+                # No tile or seq echoed: one reply shape beats a field that comes and goes.
                 await _send(socket, _rejected(opened) | session.note(opened))
 
                 continue
