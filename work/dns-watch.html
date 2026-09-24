@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
-    <title>Every change to the house leaves a dated, attributable row — Paweł Chraczyński</title>
+    <meta name="description" content="Case study: DNS queries and router flow records joined per device, the unexplained remainder attributed, and a local model judging the digest so no cloud API sees the traffic."/>
+    <title>Knowing what every device in the house talks to — Paweł Chraczyński</title>
     <link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
     <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
     <meta property="og:type" content="article"/>
-    <meta property="og:url" content="https://www.szawel.com/work/yoman.html"/>
-    <meta property="og:title" content="Every change to the house leaves a dated, attributable row"/>
-    <meta property="og:description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
+    <meta property="og:url" content="https://www.szawel.com/work/dns-watch.html"/>
+    <meta property="og:title" content="Knowing what every device in the house talks to"/>
+    <meta property="og:description" content="Case study: DNS queries and router flow records joined per device, the unexplained remainder attributed, and a local model judging the digest so no cloud API sees the traffic."/>
     <meta property="og:image" content="https://www.szawel.com/og.png"/>
     <meta property="og:image:width" content="1200"/>
     <meta property="og:image:height" content="630"/>
@@ -23,9 +23,9 @@
     <div class="wrap">
         <header>
             <a class="back" href="../#work-done">&larr; szawel.com</a>
-            <div class="kicker">Case study &middot; an audit trail for a homelab</div>
-            <h1>Every change to the house leaves a dated, attributable row</h1>
-            <p class="meta">PostgreSQL &middot; append-only log &middot; least-privilege roles &middot; measured 2026-09-23</p>
+            <div class="kicker">Case study &middot; outbound traffic, accounted for</div>
+            <h1>Knowing what every device in the house talks to</h1>
+            <p class="meta">DNS query log &middot; flow export &middot; local LLM &middot; measured 2026-09-24</p>
         </header>
 
         <section class="case">
@@ -33,43 +33,46 @@
                 <div class="card">
                     <h2>Problem</h2>
                     <p>
-                        A house full of scheduled jobs, alerts and hand edits, and no shared record of
-                        any of it. Asking "what did we change around then?" meant reconstructing
-                        events from commit history and memory, which is exactly the question an audit
-                        trail exists to answer in one query.
+                        A house full of devices, each free to talk to anything, and no way to say
+                        which of them reached where. The usual answer is a cloud service that
+                        inspects the traffic, which hands the one record worth protecting to a third
+                        party.
                     </p>
                 </div>
                 <div class="card">
                     <h2>Action</h2>
                     <p>
-                        One append-only table. Every run writes a row with its time, topic, status and
-                        structured detail; every notification writes one too, so the record holds
-                        everything the phone was told. A hand change leaves a note with a single
-                        command. The dashboard over it reads, and can append exactly one kind of row,
-                        an alarm stand-down, under a database role that allows nothing else.
+                        Two sources joined per device: the house resolver's query log, and flow
+                        records exported by the router for what DNS never sees. Every destination no
+                        DNS answer explains is attributed to the network that operates it, and a
+                        digest of each run goes to a language model running on my own hardware. It
+                        flags what looks wrong and pushes it to a phone.
                     </p>
                 </div>
                 <div class="card">
                     <h2>Outcome</h2>
                     <p>
-                        <b>3,800+ attributable rows since July 2026.</b> "What touched the network that
-                        week?" is a filter, not an investigation, and a quiet night reads as a row that
-                        says so rather than as silence that could mean anything.
+                        <b>5.3 million flow records in 18 days, over 1,000 analysis runs.</b> Roughly
+                        one destination in eight has no DNS answer behind it, and each of those now
+                        arrives with the network that announces it rather than as a bare address. No
+                        traffic record leaves the house to be judged.
                     </p>
                 </div>
                 <p class="aside">
-                    The detail worth keeping: <b>a run that fires its alerts and then dies has already
-                    woken somebody</b>, so looking for it in the run rows alone finds nothing. Logging the
-                    notification as its own row is what makes the record match what actually happened,
-                    not what the code meant to happen.
+                    The detail worth keeping: <b>"unexplained" and "unknown" are not the same
+                    thing</b>. Apps that pin their server addresses never ask DNS at all, so that
+                    share is a floor, not a backlog. Handed a bare address and a count, the model
+                    read volume as intent and flagged a messaging app as possible command and
+                    control. Giving it the address's owner, not a bigger DNS window, is what
+                    stopped the false alarms.
                 </p>
             </div>
         </section>
 
         <nav class="next" aria-label="Next case study">
-            <a class="card work" href="iot.html">
+            <a class="card work" href="isp-watch.html">
                 <span class="kicker">Next case study</span>
-                <h2>A shelf of IoT devices with no vendor in the path</h2>
+                <h2>An ISP contract, checked by measurement rather than by complaint</h2>
                 <p class="more">Read it &rarr;</p>
             </a>
         </nav>

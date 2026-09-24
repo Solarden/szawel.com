@@ -21,6 +21,8 @@ main { padding: 48px 0 }
 
 a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(182, 255, 58, .45) }
 a:hover { border-bottom-color: var(--you) }
+/* The browser default ring is near invisible on this background. */
+:focus-visible { outline: 2px solid var(--you); outline-offset: 3px }
 
 .kicker {
     font-family: var(--mono);
@@ -74,6 +76,8 @@ section { margin-top: 48px }
 @media (min-width: 820px) {
     .grid { grid-template-columns: 1fr 1fr }
     .grid.three { grid-template-columns: repeat(3, 1fr) }
+    /* Inside the query: a span of 2 in the one-column layout adds a second column. */
+    .grid.three .aside { grid-column: span 2 }
 }
 
 .card {
@@ -91,6 +95,9 @@ section { margin-top: 48px }
 
 .also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
 
+.about { max-width: var(--prose); color: var(--dim) }
+.about p + p { margin-top: 14px }
+
 /* Full width to line up with the footer (and the widget on the apex), so the right half carries
    the action instead of sitting empty beside a 72ch paragraph. */
 @media (min-width: 820px) {
@@ -99,10 +106,12 @@ section { margin-top: 48px }
 }
 #contact .actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start }
 #contact .actions .links { font-size: 15px; color: var(--dim) }
+/* Padding, not font size: 24px is the WCAG 2.2 minimum for a target on a phone. */
+.background a, #contact .links a { display: inline-block; padding: 3px 0 }
 
 .case p { color: var(--dim); max-width: 72ch; margin-top: 8px }
 /* max-width none: .case p caps at 72ch, short of the two columns this spans. */
-.grid.three .aside { grid-column: span 2; max-width: none; color: var(--dim); margin-top: 8px }
+.grid.three .aside { max-width: none; color: var(--dim); margin-top: 8px }
 .case b { color: var(--ink); font-weight: 700 }
 
 /* Wider than the prose column: the widget is a figure; widget.css says why it needs the width. */
@@ -111,6 +120,13 @@ section { margin-top: 48px }
 #demo .intro { margin-bottom: 24px }
 #demo .intro p { color: var(--dim); max-width: var(--prose); margin-top: 16px }
 #demo .note { max-width: var(--prose) }
+
+#demo .steps { margin: 16px 0 0 1.4em; color: var(--dim); max-width: var(--prose) }
+#demo .steps li { margin-top: 6px; padding-left: 4px }
+#demo .steps b { color: var(--ink); font-weight: 700 }
+#demo .steps code { font-family: var(--mono); font-size: .85em; color: var(--you) }
+
+#demo .note summary { cursor: pointer; color: var(--ink); margin-bottom: 8px }
 
 footer {
     margin-top: 48px;
@@ -131,4 +147,6 @@ a.work .more { margin-top: 12px; font-family: var(--mono); font-size: 14px; colo
 
 .back { font-family: var(--mono); font-size: 14px }
 .back + .kicker { margin-top: 32px }
+.next { margin-top: 48px }
+.next h2 { margin-top: 8px }
 .meta { margin-top: 16px; font-family: var(--mono); font-size: 14px; color: var(--dim) }

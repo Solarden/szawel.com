@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
-    <title>Every change to the house leaves a dated, attributable row — Paweł Chraczyński</title>
+    <meta name="description" content="Case study: a probe every minute and a speed test every two hours, each outage attributed to the layer that caused it, and a monthly SLA report that arrives even when the month was clean."/>
+    <title>An ISP contract, checked by measurement rather than by complaint — Paweł Chraczyński</title>
     <link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
     <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
     <meta property="og:type" content="article"/>
-    <meta property="og:url" content="https://www.szawel.com/work/yoman.html"/>
-    <meta property="og:title" content="Every change to the house leaves a dated, attributable row"/>
-    <meta property="og:description" content="Case study: one append-only audit trail for automated runs, notifications and hand edits, behind a least-privilege dashboard."/>
+    <meta property="og:url" content="https://www.szawel.com/work/isp-watch.html"/>
+    <meta property="og:title" content="An ISP contract, checked by measurement rather than by complaint"/>
+    <meta property="og:description" content="Case study: a probe every minute and a speed test every two hours, each outage attributed to the layer that caused it, and a monthly SLA report that arrives even when the month was clean."/>
     <meta property="og:image" content="https://www.szawel.com/og.png"/>
     <meta property="og:image:width" content="1200"/>
     <meta property="og:image:height" content="630"/>
@@ -23,9 +23,9 @@
     <div class="wrap">
         <header>
             <a class="back" href="../#work-done">&larr; szawel.com</a>
-            <div class="kicker">Case study &middot; an audit trail for a homelab</div>
-            <h1>Every change to the house leaves a dated, attributable row</h1>
-            <p class="meta">PostgreSQL &middot; append-only log &middot; least-privilege roles &middot; measured 2026-09-23</p>
+            <div class="kicker">Case study &middot; holding a contract to its numbers</div>
+            <h1>An ISP contract, checked by measurement rather than by complaint</h1>
+            <p class="meta">minute probes &middot; attribution ladder &middot; monthly SLA report &middot; measured 2026-09-24</p>
         </header>
 
         <section class="case">
@@ -33,43 +33,43 @@
                 <div class="card">
                     <h2>Problem</h2>
                     <p>
-                        A house full of scheduled jobs, alerts and hand edits, and no shared record of
-                        any of it. Asking "what did we change around then?" meant reconstructing
-                        events from commit history and memory, which is exactly the question an audit
-                        trail exists to answer in one query.
+                        Under EU rules a fixed-line contract states minimum and normally available
+                        speeds, and a claim needs a significant, continuous or recurring shortfall.
+                        That is a statistical argument. A screenshot of one slow speed test is not
+                        evidence, and neither is a feeling that the line was down.
                     </p>
                 </div>
                 <div class="card">
                     <h2>Action</h2>
                     <p>
-                        One append-only table. Every run writes a row with its time, topic, status and
-                        structured detail; every notification writes one too, so the record holds
-                        everything the phone was told. A hand change leaves a note with a single
-                        command. The dashboard over it reads, and can append exactly one kind of row,
-                        an alarm stand-down, under a database role that allows nothing else.
+                        A probe every minute walks a ladder: the router, then two independent public
+                        anchors, and only when both fail, the ISP's own gateway. Each outage lands on
+                        the layer that caused it. A speed test runs every two hours. Once a month a report goes out
+                        with the verdict against the contract.
                     </p>
                 </div>
                 <div class="card">
                     <h2>Outcome</h2>
                     <p>
-                        <b>3,800+ attributable rows since July 2026.</b> "What touched the network that
-                        week?" is a filter, not an investigation, and a quiet night reads as a row that
-                        says so rather than as silence that could mean anything.
+                        <b>25,000+ probes, 0 minutes that count as an ISP outage.</b> Of the 17 minutes
+                        without internet, 16 were the house's own network and one the fibre link, and
+                        each is recorded as exactly that, so none pads the provider's score in either
+                        direction.
                     </p>
                 </div>
                 <p class="aside">
-                    The detail worth keeping: <b>a run that fires its alerts and then dies has already
-                    woken somebody</b>, so looking for it in the run rows alone finds nothing. Logging the
-                    notification as its own row is what makes the record match what actually happened,
-                    not what the code meant to happen.
+                    The detail worth keeping: <b>the monthly report goes out even when the month
+                    was clean</b>. A report that only arrives when something is wrong cannot be
+                    told apart from a monitor that has stopped running; one that always arrives
+                    turns its own absence into the alarm.
                 </p>
             </div>
         </section>
 
         <nav class="next" aria-label="Next case study">
-            <a class="card work" href="iot.html">
+            <a class="card work" href="yoman.html">
                 <span class="kicker">Next case study</span>
-                <h2>A shelf of IoT devices with no vendor in the path</h2>
+                <h2>Every change to the house leaves a dated, attributable row</h2>
                 <p class="more">Read it &rarr;</p>
             </a>
         </nav>
