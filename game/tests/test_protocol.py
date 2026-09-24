@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 import pytest
+from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 from game.rules import BOARD_SIZE, Board, Rejection, neighbours, new_game
@@ -972,3 +973,33 @@ def test_a_limit_below_one_is_refused_at_import_rather_than_silently_applied(
 
     assert proof.returncode != 0
     assert f"{variable} must be at least 1" in proof.stderr
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [None, "https://www.szawel.com", "https://play.szawel.com", "http://localhost:8811"],
+)
+def test_the_site_its_box_and_a_local_preview_may_open_a_match(client, origin):
+    headers = {"origin": origin} if origin else {}
+
+    with client.websocket_connect("/ws/play", headers=headers) as socket:
+        welcome = hello(socket)
+
+    assert welcome["type"] == "WELCOME"
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://evil.example",
+        "https://www.szawel.com.evil.example",
+        "http://www.szawel.com",
+        "null",
+    ],
+)
+def test_another_sites_page_is_refused_at_the_handshake(client, origin):
+    with pytest.raises(WebSocketDisconnect) as refused:
+        with client.websocket_connect("/ws/play", headers={"origin": origin}):
+            pass
+
+    assert refused.value.code == 1008

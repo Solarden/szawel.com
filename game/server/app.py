@@ -10,6 +10,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -58,6 +59,17 @@ MINT_WINDOW_SECONDS = 60
 if MINT_LIMIT < 1:
     # Zero refuses every new visitor while /health still answers ok; see MAX_MATCHES.
     raise ValueError(f"PLAY_MINT_LIMIT must be at least 1, got {MINT_LIMIT}")
+
+# A browser always sends Origin on a WebSocket handshake, so this stops another site's page from
+# opening matches in its visitors' browsers. It stops nothing else: a script sets any Origin it
+# likes, or none, which is why a missing one is let through and the mint limit stays the brake.
+ALLOWED_ORIGINS = {"https://www.szawel.com", "https://szawel.com", "https://play.szawel.com"}
+LOCAL_ORIGIN = re.compile(r"http://(localhost|127\.0\.0\.1)(:\d+)?")
+
+
+def _origin_allowed(origin: str | None) -> bool:
+    return origin is None or origin in ALLOWED_ORIGINS or bool(LOCAL_ORIGIN.fullmatch(origin))
+
 
 # Addresses, and only here. Nothing in this dict is written down, and a minute after an
 # address stops minting matches it is gone from the process entirely.
@@ -429,6 +441,12 @@ async def _handle_move(
 
 @app.websocket("/ws/play")
 async def play(socket: WebSocket) -> None:
+    if not _origin_allowed(socket.headers.get("origin")):
+        # Before accept, so the handshake itself fails with a 403.
+        await socket.close(code=1008)
+
+        return
+
     await socket.accept()
     matches.sweep()
     session = Session()
