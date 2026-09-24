@@ -1,8 +1,9 @@
-/* Widget only. The page around it — nav, copy, calls to action — belongs to the landing page. */
+/* Widget only. The page around it — nav, copy, calls to action — belongs to the host page. */
 
 /* Vendored, never a CDN: a webfont request hands the visitor's IP to whoever serves it, on the
-   page arguing for the opposite. Licences sit beside the files. Latin subsets only, and no
-   unicode-range — a glyph they lack (the arrows) falls through to the next family in the stack. */
+   page arguing for the opposite. Licences sit beside the files. */
+/* Latin subsets with no unicode-range: a glyph they lack (the arrows) falls through to the next
+   family in the stack. */
 @font-face {
   font-family: 'IBM Plex Mono';
   src: url('fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
@@ -40,10 +41,8 @@
   /* seq, ts, actor, event, subject, outcome. In ch, so the header and the rows only line up
      while they share a font size — that is why both sit inside .logwrap and neither sets one. */
   --cols: 3ch 12ch 6ch 8ch 14ch auto;
-  /* --dimmer reads 2.43:1 on the log background, under AA, and seq and ts carry the
-     "nothing was dropped" claim. */
-  /* ponytail: its own token rather than lifting --dimmer, whose other uses are the tile dots
-     and the dead LED — not text. */
+  /* --dimmer reads 2.43:1 on the log, under AA, and seq and ts carry the "nothing was dropped"
+     claim. ponytail: its own token, since --dimmer's other uses are dots and the dead LED. */
   --log-dim: #909391;
 }
 
@@ -183,8 +182,8 @@
 .leaderboard { margin-top: 22px }
 .leaderboard .paneLabel { margin-bottom: 10px }
 .leaders { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px }
-/* Scoped to its container, not bare: .lead is also the landing page's hero paragraph, and a
-   bare rule here turns that paragraph into a three-column grid. */
+/* Scoped to its container, not bare: .lead is also the apex's hero paragraph, and a bare rule
+   here turns that paragraph into a three-column grid. */
 .leaders .lead { display: grid; grid-template-columns: 2ch 1fr auto; gap: 9px; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 5px }
 .leaders .lead .rk { color: var(--log-dim) }
 /* Ellipsis rather than a wider column: a longer word on the list must not widen the page. */

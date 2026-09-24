@@ -98,7 +98,6 @@ def test_a_malformed_board_is_refused(water, valuable, you, server):
 
 @pytest.mark.parametrize("ask", [legal_moves, score])
 def test_a_non_player_is_refused_rather_than_answered(ask):
-    # owners marks free tiles with None, so None must not read as "a player who owns them".
     state = new_game()
 
     with pytest.raises(ValueError):

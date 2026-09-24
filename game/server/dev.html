@@ -82,12 +82,14 @@
     </div>
 
     <div class="note">
-        <p>This demo keeps a match id in your browser so you can pick a game back up. No cookies,
-            no analytics, nothing about you leaves your machine. Scores are ephemeral and reset
-            weekly.</p>
+        <p><b>The game connection starts only when you press Start.</b> Press it and this page
+            opens a connection to the game server, which sees your address the way any server you
+            connect to does. It keeps a match id in your browser so you can pick a game back up.
+            No cookies, no analytics, nothing else about you is kept. Scores are ephemeral and
+            reset weekly.</p>
         <p>Every command after the handshake is <b>signed</b> with a key the server mints for this
             connection and hands to this page, and carries a counter the server will not accept
-            twice. You can read that key in devtools &middot; so the envelope protects the
+            twice. You can read that key in devtools, so the envelope protects the
             <b>session</b>, not against the <b>player</b>. Anti-cheat is the server refusing
             illegal moves, and nothing else.</p>
         <p>The <b>state digest</b> is how you check no tab is showing you a stale board: open the

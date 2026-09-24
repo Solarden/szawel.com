@@ -91,8 +91,8 @@ section { margin-top: 48px }
 
 .also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
 
-/* Full width to line up with the widget and the footer, so the right half carries the action
-   instead of sitting empty beside a 72ch paragraph. */
+/* Full width to line up with the footer (and the widget on the apex), so the right half carries
+   the action instead of sitting empty beside a 72ch paragraph. */
 @media (min-width: 820px) {
     #contact .card.split { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center }
     #contact .card.split .actions { align-items: center }
@@ -105,8 +105,7 @@ section { margin-top: 48px }
 .grid.three .aside { grid-column: span 2; max-width: none; color: var(--dim); margin-top: 8px }
 .case b { color: var(--ink); font-weight: 700 }
 
-/* Wider than the prose column on purpose: one console line is ~81ch, and the widget
-   is a figure rather than a paragraph. */
+/* Wider than the prose column: the widget is a figure; widget.css says why it needs the width. */
 #demo { max-width: 1400px; margin: 48px auto 0; padding: 0 22px }
 
 #demo .intro { margin-bottom: 24px }
@@ -131,4 +130,5 @@ a.work .n { font-family: var(--disp); font-weight: 800; font-size: 30px; color: 
 a.work .more { margin-top: 12px; font-family: var(--mono); font-size: 14px; color: var(--ink) }
 
 .back { font-family: var(--mono); font-size: 14px }
+.back + .kicker { margin-top: 32px }
 .meta { margin-top: 16px; font-family: var(--mono); font-size: 14px; color: var(--dim) }

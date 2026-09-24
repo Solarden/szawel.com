@@ -38,7 +38,6 @@ def _connect() -> sqlite3.Connection:
     db = sqlite3.connect(DB_PATH, isolation_level=None)
     db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA synchronous=NORMAL")
-    # No foreign_keys=ON: it enforces nothing across one table that has no relations.
     db.execute(
         "CREATE TABLE IF NOT EXISTS scores "
         "(week TEXT NOT NULL, handle TEXT NOT NULL, score INTEGER NOT NULL)"
@@ -75,11 +74,8 @@ def record(points: int) -> str:
     """File a finished match under a fresh handle, and return the handle it went on under."""
     name = handle()
 
-    # ponytail: sqlite on the event loop, inside the caller's match lock. One row, well under
-    # a millisecond, against the 260 ms opponent pause that same lock already holds on
-    # purpose. The ceiling is the WAL checkpoint rather than the insert: every so often one
-    # commit pays for folding the log back into the database and stalls every socket on this
-    # process for as long as that takes. Move it off the loop once someone has measured that.
+    # ponytail: sqlite on the event loop, inside the match lock; a WAL checkpoint can stall
+    # every socket. Move it off the loop once someone has measured that.
     with closing(_connect()) as db:
         db.execute("INSERT INTO scores VALUES (?, ?, ?)", (current_week(), name, points))
 

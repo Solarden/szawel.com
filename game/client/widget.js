@@ -116,9 +116,8 @@
   // A decided match replays no OVER, so a returning player only ever meets the board on
   // WELCOME — which is why both messages carry it.
   function leaders(rows) {
-    // A server that sent no board has not said the week is empty, so nothing here may
-    // say it either: the strip keeps its placeholder. Reachable the moment the client
-    // and the server stop deploying together, which is exactly what P7 does to them.
+    // A server that sent no board has not said the week is empty, so the strip keeps its
+    // placeholder. Reachable whenever the client and the server deploy separately.
     if (!rows) {
       return;
     }
@@ -175,7 +174,7 @@
   }
 
   function build(state) {
-    // The placeholder board and the start control are children here and are not in `tiles`.
+    // The placeholder tiles are children here and are not in `tiles`.
     // Without this the real tiles append under them and the board silently doubles in height.
     boardEl.textContent = '';
     boardEl.style.gridTemplateColumns = 'repeat(' + state.cols + ', 1fr)';
@@ -324,7 +323,7 @@
         throw new Error('the socket closed while the command was being signed');
       }
 
-      // Started here rather than at the click, so the tile keeps measuring a round-trip.
+      // Started here rather than at the click, so the metric keeps measuring a round-trip.
       pending.set(mine, performance.now());
       socket.send(JSON.stringify({ body: body, sig: hex(signature) }));
       line('client', 'MOVE', 'tile=' + index, '→ signed, sent');
@@ -355,7 +354,7 @@
 
   function receive(event) {
     var message = JSON.parse(event.data);
-    // Bytes, which is what the tile claims — String.length counts UTF-16 units.
+    // Bytes, which is what the metric claims — String.length counts UTF-16 units.
     metric('mPay', BYTES.encode(event.data).length, 'B');
 
     if (message.type === 'WELCOME') {
@@ -497,7 +496,7 @@
   }
 
   // Not on load: a socket for every visitor costs a connection and shows the server an address
-  // nobody offered, on a page whose note says nothing leaves your machine until you press this.
+  // nobody offered, on a page whose note says the connection starts only when you press this.
   el('start').addEventListener('click', function () {
     this.remove();
     connect();

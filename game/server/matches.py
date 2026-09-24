@@ -15,7 +15,8 @@ from game.rules import GameState, new_game
 # Generous on purpose: this timer is the one that can delete a match someone is still using.
 IDLE_SECONDS = 30 * 60
 
-# Every HELLO without a resumable token mints a match, and nothing authenticates a HELLO.
+# Every HELLO without a resumable token mints a match and nothing authenticates a HELLO, so the
+# count is capped.
 #
 # A blank reads as unset, because int("") would take the box down over a value someone commented
 # out. A non-blank value that is not a number still raises: "20O" is a typo to be told about.
