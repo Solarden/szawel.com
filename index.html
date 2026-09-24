@@ -154,24 +154,17 @@
     <section id="demo" aria-labelledby="demo-label">
         <div class="intro">
             <div class="label" id="demo-label">Live &middot; the console is the point</div>
-            <p>
-                Below is a game. The game is the bait; the panel beside it is the work. The browser
-                holds no rules: every click is a command the server decides, answered with a new
-                state or a typed reason for refusal. Every number on that panel is measured.
-            </p>
             <ol class="steps">
-                <li><b>Press Start and take a tile</b> next to one you hold. The server answers with
-                    the new state, and the console logs the command, its latency and the verdict.</li>
+                <li><b>Press Start and take a tile</b> next to one you hold. Ringed tiles are worth
+                    more; when neither side can move, the higher score wins. The console logs every
+                    command, its latency and the verdict.</li>
                 <li><b>Watch the opponent move.</b> Its turn is computed on the server too; the
                     browser only draws what it is told.</li>
                 <li><b>Click a tile you do not border.</b> The server refuses it and says why:
                     <code>REJECTED ADJACENCY</code>, not a silent no-op.</li>
+                <li><b>Try to cheat.</b> The signing key is in devtools. Forge a move; the server
+                    keeps count.</li>
             </ol>
-            <p>
-                The same validation applies to device events, webhooks and any other request that
-                changes state. What this does not show is FHIR or PHI handling: it is the pattern I
-                ship in production APIs, minus the part where it touches anyone's data.
-            </p>
         </div>
         <div class="widget">
             <div class="pane left">
@@ -229,6 +222,20 @@
         <div class="leaderboard">
             <div class="paneLabel">// leaderboard &nbsp;&middot;&nbsp; this week, top ten</div>
             <div class="leaders" id="leaders" aria-live="polite"><span class="empty">&middot;</span></div>
+        </div>
+
+        <!-- Under the widget, not over it: on a phone the steps and the board are the first screen. -->
+        <div class="intro">
+            <p>
+                The game is the bait; the panel beside it is the work. The browser holds no rules:
+                every click is a command the server decides, answered with a new state or a typed
+                reason for refusal. Every number on that panel is measured.
+            </p>
+            <p>
+                The same validation applies to device events, webhooks and any other request that
+                changes state. What this does not show is FHIR or PHI handling: it is the pattern I
+                ship in production APIs, minus the part where it touches anyone's data.
+            </p>
         </div>
 
         <div class="note">

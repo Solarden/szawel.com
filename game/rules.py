@@ -39,6 +39,7 @@ class Rejection(Enum):
     OCCUPIED = auto()
     NOT_YOUR_TURN = auto()
     GAME_OVER = auto()
+    OFF_BOARD = auto()
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,16 +132,37 @@ def legal_moves(state: GameState, player: Player) -> frozenset[int]:
     )
 
 
+def _reachable(state: GameState, player: Player) -> frozenset[int]:
+    """Every free tile the player could still claim, however many turns it would take."""
+    frontier = list(legal_moves(state, player))
+    found = set(frontier)
+
+    while frontier:
+        for near in neighbours(frontier.pop()):
+            if near not in found and state.owners[near] is None and near not in state.board.water:
+                found.add(near)
+                frontier.append(near)
+
+    return frozenset(found)
+
+
 def _settle_turn(state: GameState) -> GameState:
-    if legal_moves(state, state.turn):
+    mover = state.turn
+    mover_can, opponent_can = legal_moves(state, mover), legal_moves(state, mover.opponent)
+
+    if mover_can and opponent_can:
         return state
+    if not (mover_can or opponent_can):
+        return replace(state, over=True)
 
-    opponent = state.turn.opponent
+    # A sealed side stays sealed: nothing is ever captured and free tiles only run out. The
+    # survivor would take everything it can reach one turn at a time, so it takes it now, and
+    # the final board is the one playing it out would have reached.
+    survivor = mover if mover_can else mover.opponent
+    claimed = _reachable(state, survivor)
+    owners = tuple(survivor if i in claimed else owner for i, owner in enumerate(state.owners))
 
-    if legal_moves(state, opponent):
-        return replace(state, turn=opponent)
-
-    return replace(state, over=True)
+    return replace(state, owners=owners, over=True)
 
 
 def new_game(board: Board = DEFAULT_BOARD, first: Player = Player.YOU) -> GameState:
@@ -159,10 +181,10 @@ def apply_move(state: GameState, move: Move) -> GameState | Rejection:
     if move.player is not state.turn:
         return Rejection.NOT_YOUR_TURN
 
-    # An off-board index gets ADJACENCY rather than a sixth reason: it is not next to
-    # anything the player holds, and a hostile client must not reach an IndexError.
+    # Before any lookup: a hostile client must not reach an IndexError, and -1 would index
+    # the last tile rather than fail.
     if not 0 <= move.index < BOARD_SIZE:
-        return Rejection.ADJACENCY
+        return Rejection.OFF_BOARD
     if move.index in state.board.water:
         return Rejection.WATER
     if state.owners[move.index] is not None:
@@ -204,6 +226,7 @@ def to_dict(state: GameState) -> dict:
         "cols": COLS,
         "rows": ROWS,
         "terrain": [terrain_at(state.board, index).name.lower() for index in range(BOARD_SIZE)],
+        "points": {terrain.name.lower(): terrain.points for terrain in Terrain},
         "owners": [None if owner is None else owner.value for owner in state.owners],
         "turn": state.turn.value,
         "over": state.over,

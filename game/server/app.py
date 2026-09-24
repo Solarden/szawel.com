@@ -122,11 +122,11 @@ class Transport(Enum):
 
 
 # Envelope violations one socket sends before the opponent starts taking an extra turn a round,
-# and one more turn for every further ten.
+# and one more turn for every further five.
 #
-# ponytail: 10 is a guess — low enough that a deliberate poke finds it, high enough that an
-# honest client hitting a bug does not. Tune once something real has tripped it.
-UNSHACKLE_AFTER = 10
+# ponytail: 5 because a determined outside tester stopped at four, never seeing the payoff; an
+# honest client never sends one at all. Tune again once more real pokes have been seen.
+UNSHACKLE_AFTER = 5
 
 # PROTOCOL is deliberately absent. `Session.open` returns it on a frame whose signature
 # verified, which is a client holding the key and sending a malformed command — a bug
@@ -154,20 +154,22 @@ class Session:
         return self.violations // UNSHACKLE_AFTER
 
     def note(self, refusal: Transport) -> dict:
-        """The fields a refusal carries when it is the one that widens the opponent's round.
+        """The count every envelope violation carries, and the step up on the one that widens
+        the opponent's round.
 
-        Empty on every other refusal, so the news is announced once per step up rather than
-        repeated under every later violation.
+        `extra_turns` rides only on that one, so the news is announced once per step up rather
+        than repeated under every later violation.
         """
         if refusal not in ENVELOPE_VIOLATIONS:
             return {}
 
         self.violations += 1
+        count = {"violations": self.violations, "next": (self.extra_turns + 1) * UNSHACKLE_AFTER}
 
         if self.violations % UNSHACKLE_AFTER:
-            return {}
+            return count
 
-        return {"violations": self.violations, "extra_turns": self.extra_turns}
+        return count | {"extra_turns": self.extra_turns}
 
     def open(self, message: dict) -> dict | Transport:
         """The signed command inside the envelope, or the reason it is not one."""
@@ -234,15 +236,35 @@ def _digest(state: dict) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()[:8]
 
 
+def _winner(match: matches.Match) -> str | None:
+    champion = winner(match.state)
+
+    return None if champion is None else champion.value
+
+
 def _view(match: matches.Match) -> dict:
     state = to_dict(match.state)
-
-    return {
+    view = {
         "state": state,
         "digest": _digest(state),
         "legal_moves": sorted(legal_moves(match.state, Player.YOU)),
         "clients": len(match.sockets),
     }
+
+    # Beside the state, not inside it: the digest stays a digest of the board. It also rides on
+    # WELCOME, because a decided match replays no OVER to a returning player.
+    if match.state.over:
+        view["winner"] = _winner(match)
+
+    return view
+
+
+def _settled(before: GameState, after: GameState) -> dict:
+    """The tiles the engine claimed on top of the move itself, when that move decided the match."""
+    count = sum(owner is not None for owner in after.owners)
+    count -= sum(owner is not None for owner in before.owners) + 1
+
+    return {"settled": count} if count else {}
 
 
 def _state_message(
@@ -281,11 +303,9 @@ def _filed(match: matches.Match) -> dict:
 
 
 def _over_message(match: matches.Match) -> dict:
-    champion = winner(match.state)
-
     return {
         "type": "OVER",
-        "winner": None if champion is None else champion.value,
+        "winner": _winner(match),
         "scores": to_dict(match.state)["scores"],
         **_board(),
     }
@@ -373,6 +393,7 @@ async def _opponent_turn(match: matches.Match, state: GameState, *, seized: bool
 
     match.state = settled
     theirs = {"by": Player.SERVER.value, "tile": tile, "seq": None, "seized": seized}
+    theirs |= _settled(state, settled)
     await _broadcast(match, _state_message(match, last=theirs, started=started))
 
 
@@ -388,8 +409,9 @@ async def _handle_move(
 
         return
 
-    # Held across the pause below: during the opponent's turn there is nothing a second tab
-    # can validly do, so blocking it costs a rejection it was going to get anyway.
+    # Held across the pause below, so a move sent during the opponent's turn, from this socket
+    # or a second tab, waits here and is judged once the turn is back: a pre-move, never a
+    # NOT_YOUR_TURN.
     # ponytail: per-match lock; nothing here needs more.
     async with match.lock:
         matches.touch(match)
@@ -404,13 +426,13 @@ async def _handle_move(
 
             return
 
+        mine = {"by": Player.YOU.value, "tile": tile, "seq": seq} | _settled(match.state, outcome)
         match.state = outcome
-        mine = {"by": Player.YOU.value, "tile": tile, "seq": seq}
         await _broadcast(match, _state_message(match, last=mine, started=started))
 
-        # A loop, not an if: the engine's auto-pass hands the server consecutive turns whenever
-        # the player is sealed off.
-        while not match.state.over and match.state.turn is Player.SERVER:
+        # The engine settles a match the moment either side is sealed, so after the player's
+        # move it is either over or the opponent's turn.
+        if not match.state.over:
             await _opponent_turn(match, match.state)
 
             # Seizes turns, never moves: each tile still goes through `apply_move`. Keyed to the
@@ -419,13 +441,8 @@ async def _handle_move(
             # ponytail: no cap on the count — the legal-moves guard is the ceiling, and it
             # is the board's, so the worst case is a match ending inside one round.
             for _ in range(session.extra_turns):
-                # Nothing to seize: the engine's auto-pass has already left the turn here, so
-                # the loop above takes it and the console does not call it a seizure.
-                if match.state.turn is Player.SERVER:
-                    break
-
-                # A hard condition, not greedy_ai's assert, which python -O strips: the
-                # opponent can legitimately be sealed off while the player still has moves.
+                # Empty only once the match is over. A hard condition rather than greedy_ai's
+                # assert, which python -O strips.
                 if not legal_moves(match.state, Player.SERVER):
                     break
 

@@ -1,5 +1,6 @@
 import copy
 import random
+from dataclasses import replace
 
 import pytest
 
@@ -69,8 +70,8 @@ def test_legal_moves(water, you, expected):
     ("water", "you", "mover", "index", "expected"),
     [
         (frozenset(), frozenset({0}), Player.YOU, 40, Rejection.ADJACENCY),
-        (frozenset(), frozenset({0}), Player.YOU, 999, Rejection.ADJACENCY),
-        (frozenset(), frozenset({0}), Player.YOU, -1, Rejection.ADJACENCY),
+        (frozenset(), frozenset({0}), Player.YOU, BOARD_SIZE, Rejection.OFF_BOARD),
+        (frozenset(), frozenset({0}), Player.YOU, -1, Rejection.OFF_BOARD),
         (frozenset({1}), frozenset({0}), Player.YOU, 1, Rejection.WATER),
         (frozenset(), frozenset({0, 8}), Player.YOU, 8, Rejection.OCCUPIED),
         (frozenset(), frozenset({0}), Player.SERVER, 6, Rejection.NOT_YOUR_TURN),
@@ -142,14 +143,40 @@ def test_apply_move_leaves_the_state_it_was_given_alone():
     assert state == before
 
 
-def test_a_sealed_player_is_passed_over_and_the_game_still_ends():
+def test_a_side_sealed_from_the_start_ends_the_game_at_once():
     # YOU holds tile 0 with water on both its neighbours, so YOU never moves again.
     state = new_game(hand_board(water={1, 8}))
-    assert state.turn is Player.SERVER
 
-    end = play_out(state, seed=0)
+    assert is_over(state)
+    assert (score(state, Player.YOU), score(state, Player.SERVER)) == (1, 45)
 
-    assert (score(end, Player.YOU), score(end, Player.SERVER)) == (1, 45)
+
+def test_sealing_the_opponent_settles_only_what_the_survivor_can_reach():
+    # The server's 7 borders only 6 once 15 is water; 47 is walled off by 39 and 46.
+    state = new_game(hand_board(water={15, 39, 46}, you={5}, server={7}))
+
+    end = apply_move(state, Move(Player.YOU, 6))
+
+    assert is_over(end)
+    assert end.owners[47] is None
+    assert (score(end, Player.YOU), score(end, Player.SERVER)) == (43, 1)
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_a_settled_board_is_one_nobody_could_have_moved_on(seed):
+    rng = random.Random(seed)
+    state = new_game()
+
+    while not state.over:
+        state = apply_move(
+            state, Move(state.turn, rng.choice(sorted(legal_moves(state, state.turn))))
+        )
+
+    # legal_moves answers nothing once `over` is set, so ask about the same board unfinished:
+    # an empty answer for both is where playing it out turn by turn would also have stopped.
+    unfinished = replace(state, over=False)
+
+    assert not legal_moves(unfinished, Player.YOU) and not legal_moves(unfinished, Player.SERVER)
 
 
 def test_equal_value_is_a_draw_not_a_win():
@@ -203,4 +230,5 @@ def test_to_dict_carries_the_state_and_not_the_envelope():
     assert payload["scores"] == {"you": 3, "server": 3}
     assert payload["terrain"][2] == "water" and payload["terrain"][19] == "valuable"
     assert payload["owners"][0] == "you" and payload["owners"][1] is None
+    assert payload["points"] == {"water": 0, "plain": 1, "valuable": 3}
     assert "legal_moves" not in payload

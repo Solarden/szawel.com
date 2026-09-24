@@ -16,6 +16,7 @@
   // alone rather than a blank — and a test asserts these keys against both server enums.
   var REASONS = {
     ADJACENCY: 'not next to yours',
+    OFF_BOARD: 'not on the board',
     WATER: 'water is unclaimable',
     OCCUPIED: 'already owned',
     NOT_YOUR_TURN: "opponent's turn",
@@ -29,7 +30,7 @@
     RATE_LIMITED: 'too many new matches from here'
   };
 
-  // One per step up, and then silence. Reaching the third means sixty forged frames on one
+  // One per step up, and then silence. Reaching the third means fifteen forged frames on one
   // connection, which is nobody who got here by accident.
   var SMITH = [
     'I hate this place.',
@@ -60,6 +61,9 @@
   var closed = false;
   var seated = false;
   var declined = null;
+  var shown = null;
+  var greeted = false;
+  var resultEl = null;
 
   // Every line below is written by something that happened. Nothing is on a timer.
 
@@ -162,6 +166,14 @@
     }
   }
 
+  function forget() {
+    try {
+      localStorage.removeItem(STORE);
+    } catch (err) {
+      return;
+    }
+  }
+
   function remember(welcome) {
     try {
       localStorage.setItem(STORE, JSON.stringify({
@@ -203,6 +215,11 @@
     var place = 'row ' + (Math.floor(index / state.cols) + 1)
       + ' column ' + (index % state.cols + 1) + ', ';
 
+    // The value comes from the server, and a server that predates `points` gets no number.
+    if (state.terrain[index] === 'valuable' && state.points) {
+      place += 'worth ' + state.points.valuable + ' points, ';
+    }
+
     if (owner) {
       return place + (owner === 'you' ? 'yours' : 'opponent');
     }
@@ -212,6 +229,59 @@
     }
 
     return place + (legal.has(index) ? 'free, playable' : 'free');
+  }
+
+  // Says what the socket is doing, never what it might be: "sending" only while a move has
+  // gone out unanswered, the pulse only while the server holds the turn.
+  function pill() {
+    if (!shown) {
+      return;
+    }
+
+    var turn = el('turn');
+    turn.textContent = shown.over ? 'finished'
+      : shown.turn + (pending.size ? ' \u00b7 sending' : '');
+    turn.parentNode.classList.toggle('thinking',
+      live && !shown.over && !pending.size && shown.turn === 'server');
+  }
+
+  function finished(winner, scores) {
+    if (resultEl) {
+      return;
+    }
+
+    resultEl = document.createElement('div');
+    resultEl.className = 'result';
+    resultEl.setAttribute('role', 'status');
+    // A fixed table and two integers, so no server string reaches the DOM. Worded from the
+    // player's side, so the score reads you:server like the counters under the board.
+    var verdict = { you: 'you won', server: 'you lost' }[winner] || 'draw';
+    resultEl.appendChild(span('verdict', verdict + ' ' + scores.you + ':' + scores.server));
+
+    var again = document.createElement('button');
+    again.type = 'button';
+    again.textContent = 'play again';
+    again.addEventListener('click', rematch);
+    resultEl.appendChild(again);
+    boardEl.appendChild(resultEl);
+  }
+
+  function rematch() {
+    // Detached first, or closing the old socket reads as the server dying under us.
+    socket.removeEventListener('close', dead);
+    socket.removeEventListener('error', dead);
+    socket.close();
+    forget();
+    live = false;
+    closed = false;
+    seated = false;
+    declined = null;
+    signer = null;
+    pending.clear();
+    resultEl.remove();
+    resultEl = null;
+    line('client', 'SOCKET', '\u00b7', 'CLOSED \u00b7 leaving the decided match');
+    connect(true);
   }
 
   function render(state) {
@@ -229,7 +299,8 @@
 
     el('sYou').textContent = state.scores.you;
     el('sServer').textContent = state.scores.server;
-    el('turn').textContent = state.over ? 'finished' : state.turn;
+    shown = state;
+    pill();
     boardEl.classList.toggle('inert', state.over || !live);
   }
 
@@ -310,26 +381,32 @@
 
     seq += 1;
     var mine = seq;
+    // Taken at the click: a rematch mid-signing swaps both, and a body signed with the old key
+    // sent down the new socket would be counted as a forgery against a fresh session.
+    var target = socket;
+    var key = signer;
     // Built once and sent as it stands: the signature is over these exact bytes, and
     // re-serialising them anywhere would change them.
     var body = JSON.stringify({ type: 'MOVE', tile: index, seq: mine });
 
     sending = sending.then(function () {
-      return crypto.subtle.sign('HMAC', signer, BYTES.encode(body));
+      return crypto.subtle.sign('HMAC', key, BYTES.encode(body));
     }).then(function (signature) {
       // Checked here, not at the click: signing is async, and send() on a socket that closed
       // in the meantime buffers in silence rather than throwing.
-      if (socket.readyState !== WebSocket.OPEN) {
+      if (target.readyState !== WebSocket.OPEN) {
         throw new Error('the socket closed while the command was being signed');
       }
 
       // Started here rather than at the click, so the metric keeps measuring a round-trip.
       pending.set(mine, performance.now());
-      socket.send(JSON.stringify({ body: body, sig: hex(signature) }));
+      pill();
+      target.send(JSON.stringify({ body: body, sig: hex(signature) }));
       line('client', 'MOVE', 'tile=' + index, '→ signed, sent');
     }).catch(function () {
       // A chain left rejected drops every later click in silence.
       pending.delete(mine);
+      pill();
       line('client', 'MOVE', 'tile=' + index, 'DROPPED · nothing reached the server');
     });
   }
@@ -345,8 +422,11 @@
       var mine = moved.by === 'you';
       // No server_ms, no parenthetical: the panel prints times it was sent, not times it assumed.
       var took = message.server_ms == null ? '' : ' (' + message.server_ms + ' ms)';
+      var settled = moved.settled
+        ? ' \u00b7 ' + moved.settled + (moved.settled === 1 ? ' tile' : ' tiles') + ' settled'
+        : '';
       line(mine ? 'server' : 'ai', mine ? 'VALIDATE' : 'MOVE', 'tile=' + moved.tile,
-        'ACCEPTED' + took + (moved.seized ? ' \u00b7 seized turn' : ''));
+        'ACCEPTED' + took + (moved.seized ? ' \u00b7 seized turn' : '') + settled);
     }
 
     line('server', 'STATE', 'state=' + message.digest, 'broadcast → ' + plural(message.clients));
@@ -370,6 +450,22 @@
       line('server', 'WELCOME', 'state=' + message.digest,
         'ACCEPTED · match=' + message.match_id);
 
+      // A decided match resumed after its OVER went by, such as a socket that dropped at the
+      // whistle: forgotten here the way OVER forgets it.
+      if ('winner' in message) {
+        forget();
+        finished(message.winner, message.state.scores);
+      }
+
+      if (!greeted) {
+        greeted = true;
+        console.info('Every command is {body, sig}. body is the JSON {"type": "MOVE", "tile": n, '
+          + '"seq": n}, seq always rising. sig is its HMAC-SHA-256 in hex, keyed with the '
+          + 'session_key from WELCOME (devtools \u2192 Network \u2192 WS frames). Every refusal '
+          + 'comes back typed. Forge it on this page\'s own socket; that is the one the console '
+          + 'counts. Go on.');
+      }
+
       return;
     }
 
@@ -383,6 +479,7 @@
       if (message.last != null && pending.has(message.last.seq)) {
         metric('mLag', Math.round(performance.now() - pending.get(message.last.seq)), 'ms');
         pending.delete(message.last.seq);
+        pill();
       }
 
       if (message.server_ms != null) {
@@ -397,6 +494,7 @@
     if (message.type === 'REJECTED') {
       // A refused move gets no STATE, so nothing else would ever retire its timer.
       pending.delete(message.seq);
+      pill();
 
       // Refused before ever being seated is the server declining the session rather than a
       // move, and the close that follows is its doing — not the server dying under us.
@@ -408,8 +506,12 @@
       // must not claim it was one.
       var aMove = message.tile != null;
       var gloss = REASONS[message.reason];
+      // Counted toward the next step up; the step up itself is announced on its own line.
+      var strike = message.violations && !message.extra_turns
+        ? ' · strike ' + message.violations + ' of ' + message.next
+        : '';
       line('client', aMove ? 'MOVE' : 'COMMAND', aMove ? 'tile=' + message.tile : '·',
-        'REJECTED ' + message.reason + (gloss ? ' · ' + gloss : ''));
+        'REJECTED ' + message.reason + (gloss ? ' · ' + gloss : '') + strike);
 
       // Sent only on the refusal that widens the opponent's round, and composed here from two
       // numbers rather than shipped as a sentence — no server prose reaches the DOM.
@@ -433,8 +535,11 @@
     }
 
     if (message.type === 'OVER') {
+      // Only unfinished matches are kept, so a reload after this starts a fresh one.
+      forget();
       line('server', 'OVER', 'winner=' + (message.winner || 'draw'),
         message.scores.you + ':' + message.scores.server);
+      finished(message.winner, message.scores);
       leaders(message.leaderboard);
 
       // No handle means nothing was filed, and a FILED line would say otherwise.
@@ -456,14 +561,17 @@
     tiles.forEach(function (tile) { tile.classList.remove('legal'); });
     el('led').classList.add('off');
     el('connTxt').textContent = 'disconnected';
+    pill();
     boardEl.classList.add('inert');
     line('client', 'SOCKET', '·', declined
       ? 'CLOSED · the server declined the session: ' + declined
       : 'CLOSED · the server is gone, and this client has no rules to carry on with. Reload to retry');
   }
 
-  function connect() {
-    var saved = recall();
+  // Fresh sends no ids at all rather than trusting forget(): storage that refuses a write
+  // may still answer a read.
+  function connect(fresh) {
+    var saved = fresh ? {} : recall();
     el('connTxt').textContent = 'connecting';
     socket = new WebSocket(endpoint.href);
 
@@ -501,6 +609,11 @@
     this.remove();
     connect();
   });
+
+  // Whatever is saved is unfinished: OVER and WELCOME forget decided matches.
+  if (recall().match_id) {
+    el('start').textContent = 'resume match';
+  }
 
   // A fact about how this page is configured, not a claim that anything has happened.
   el('endpoint').textContent = endpoint.href;
