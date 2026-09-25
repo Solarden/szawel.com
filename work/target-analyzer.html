@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="description" content="Case study: classic CV, a vision model and a trained detector scoring photos of paper targets, each counted against a person-confirmed reading of the same photo, false alarms included."/>
+    <title>Three ways to read a paper target, measured against the same ground truth — Paweł Chraczyński</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+    <!-- Absolute, because link previews (LinkedIn, Slack) resolve nothing relative. -->
+    <meta property="og:type" content="article"/>
+    <meta property="og:url" content="https://www.szawel.com/work/target-analyzer.html"/>
+    <meta property="og:title" content="Three ways to read a paper target, measured against the same ground truth"/>
+    <meta property="og:description" content="Case study: classic CV, a vision model and a trained detector scoring photos of paper targets, each counted against a person-confirmed reading of the same photo, false alarms included."/>
+    <meta property="og:image" content="https://www.szawel.com/work/og/target-analyzer.png"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta property="og:image:alt" content="Three ways to read a paper target, measured against the same ground truth. 34 of 37 holes, where classic CV finds 23. Paweł Chraczyński, szawel.com"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <link rel="stylesheet" href="../game/client/widget.css"/>
+    <link rel="stylesheet" href="../site.css"/>
+</head>
+<body>
+<main>
+    <div class="wrap">
+        <header>
+            <a class="back" href="../#work-done">&larr; szawel.com</a>
+            <div class="kicker">Case study &middot; measuring a model before trusting it</div>
+            <h1>Three ways to read a paper target, measured against the same ground truth</h1>
+            <p class="meta">canonical frame &middot; classic CV, VLM and YOLO &middot; person-confirmed ground truth &middot; measured 2026-09-25</p>
+        </header>
+
+        <section class="case">
+            <div class="grid three">
+                <div class="card">
+                    <h2>Problem</h2>
+                    <p>
+                        A phone photo of a paper target is skewed, shadowed and often reused, with
+                        patch tape and old holes showing through. Classic blob detection, a
+                        vision-language model and a trained detector can all be made to report
+                        holes. Which one to trust is not a matter of opinion, but nothing settles it
+                        until each is scored against the same truth on the same photos.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Action</h2>
+                    <p>
+                        Every photo is warped into one canonical frame, so scoring is geometry. A
+                        detector only proposes: a person confirms every target, and both readings
+                        are kept side by side. That makes each detector's misses and false alarms
+                        countable on identical data, and the confirmed readings become the training
+                        set for the next model.
+                    </p>
+                </div>
+                <div class="card">
+                    <h2>Outcome</h2>
+                    <p>
+                        <b>On a held-out target marked again from scratch, the trained detector
+                        finds 34 of 37 holes, where classic CV finds 23.</b> It pays in false
+                        alarms, 10 against none at its default threshold. With a person confirming
+                        either way, the gain is not fewer clicks: it is more of the holes found, placed
+                        closer on average. One target, one run: a direction, not a
+                        benchmark.
+                    </p>
+                </div>
+                <p class="aside">
+                    The detail worth keeping: <b>the first held-out run read as a clear loss, and
+                    the model was fine.</b> It was cut at the stock confidence threshold, tuned for
+                    detectors with eighty classes of everyday objects; a hole is one small class.
+                    A bad number from a model is a question about its operating point before it is
+                    a question about the model.
+                </p>
+            </div>
+            <div class="cta">
+                <a class="btn go" href="https://play.szawel.com/demo/target-analyzer/compare/7">Try the live demo</a>
+            </div>
+        </section>
+
+        <nav class="next" aria-label="Next case study">
+            <a class="card work" href="yoman.html">
+                <span class="kicker">Next case study</span>
+                <h2>Every change to the house leaves a dated, attributable row</h2>
+                <p class="more">Read it &rarr;</p>
+            </a>
+        </nav>
+
+        <section id="contact">
+            <div class="card split">
+                <div>
+                    <h2>Discuss your project</h2>
+                    <p>
+                        Email me with what your system does, what is failing or missing, and your
+                        timeline.
+                    </p>
+                    <p>
+                        Limited slots, and a short discovery call to confirm fit, scope and timelines
+                        before anything is agreed.
+                    </p>
+                </div>
+                <div class="actions">
+                    <a class="btn go" href="mailto:contact@szawel.com">contact@szawel.com</a>
+                    <span class="links">
+                        <a href="https://www.linkedin.com/in/pawel-chraczynski/" target="_blank"
+                           rel="noopener">LinkedIn</a>
+                        &middot;
+                        <a href="https://github.com/Solarden" target="_blank" rel="noopener">GitHub</a>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                Services provided by <b>SOLARDEN PAWE&#321; CHRACZY&#323;SKI</b>, a registered business
+                in Poland (EU), as independent consulting; scope and deliverables agreed in
+                writing.
+            </p>
+            <p>&copy; <span id="y"></span> szawel.com &middot; <a href="../">Back to the start</a></p>
+        </footer>
+    </div>
+</main>
+
+<script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
