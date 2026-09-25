@@ -78,6 +78,11 @@ section { margin-top: 48px }
     .grid.three { grid-template-columns: repeat(3, 1fr) }
     /* Inside the query: a span of 2 in the one-column layout adds a second column. */
     .grid.three .aside { grid-column: span 2 }
+    /* An odd count of case studies would leave the last card alone beside an empty cell, so it
+       is centred at one column's width instead. 8px is half the grid's 16px gap. */
+    .grid:not(.three) > .card.work:last-child:nth-child(odd) {
+        grid-column: span 2; justify-self: center; width: calc(50% - 8px)
+    }
 }
 
 .card {
@@ -94,6 +99,8 @@ section { margin-top: 48px }
 .card b { color: var(--ink); font-weight: 700 }
 
 .also { margin-top: 16px; color: var(--dim); max-width: var(--prose) }
+/* Between a label and its grid rather than after a section's cards. */
+#work-done .also { margin: 0 0 16px }
 
 .about { max-width: var(--prose); color: var(--dim) }
 .about p + p { margin-top: 14px }
@@ -144,6 +151,8 @@ a.work { display: block; border-bottom: 1px solid var(--line2) }
 a.work:hover { border-color: var(--you); background: var(--tile) }
 a.work .n { font-family: var(--disp); font-weight: 800; font-size: 30px; color: var(--you); letter-spacing: -.02em }
 a.work .more { margin-top: 12px; font-family: var(--mono); font-size: 14px; color: var(--ink) }
+/* The invitation beside the case studies: shaped like one, quieter than one. */
+a.work.ghost { border-style: dashed; background: transparent }
 
 .back { font-family: var(--mono); font-size: 14px }
 .back + .kicker { margin-top: 32px }
