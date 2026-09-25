@@ -1,0 +1,36 @@
+/* On top of the yoman demo's skin (served at ../skin/yoman.css): the target, the charts, the tables. */
+:root{--paper:#e9e4d6;--ink:#1b1d22;--hole:#f0686b;--centroid:#b6ff3a}
+h3{font-size:.85rem;font-weight:600;margin:0 0 .5rem}
+a{color:var(--accent)}
+tr.on td{background:rgba(79,140,255,.10)}
+td:first-child{white-space:nowrap}
+/* yoman underlines table links in --line, which is invisible here, and the threshold rows are
+   the demo's one control. */
+.panel td a{color:var(--accent);border-bottom-color:var(--accent)}
+
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:.9rem}
+figure.panel{margin:0;padding:.7rem .8rem}
+figcaption{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.3rem}
+svg.chart{display:block;width:100%;height:auto}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .tick{fill:var(--muted);font-size:11px;text-anchor:end}
+.chart .tick.start{text-anchor:start}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.chart .mark{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.chart a:hover .mark,.chart a:focus .mark{fill:var(--fg)}
+
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:.9rem;margin-top:1rem}
+.compare .panel,.panel.solo{padding:.8rem}
+.panel.solo{max-width:34rem}
+svg.target{display:block;width:100%;height:auto;border-radius:.375rem}
+.target .paper{fill:var(--paper)}
+.target .ring{fill:none;stroke:var(--ink);stroke-width:2}
+.target .ring.bull{fill:var(--ink);stroke:var(--paper)}
+.target .hole{fill:var(--hole);stroke:var(--ink);stroke-width:2;fill-opacity:.9}
+.target .bias{stroke:var(--centroid);stroke-width:5}
+.target .centroid{fill:none;stroke:var(--centroid);stroke-width:5}
+dl.metrics{display:grid;grid-template-columns:auto 1fr;gap:.2rem .9rem;margin:.8rem 0 0;font-size:13px}
+dl.metrics dt{color:var(--muted)}
+dl.metrics dd{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+@media (max-width:600px){th,td{padding:.45rem .5rem}main{padding:1rem}}
