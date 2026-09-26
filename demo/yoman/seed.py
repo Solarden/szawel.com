@@ -37,6 +37,7 @@ UNITS = (
                 "{n} destinations without a DNS answer, all attributed",
             ],
             "error": ["model timed out, digest kept for the next run"],
+            "found": ["{n} new destinations, 1 flagged", "new device on the LAN"],
         },
     ),
     (
@@ -67,7 +68,11 @@ UNITS = (
         "drift",
         "drift-check",
         1,
-        {"ok": ["deployed files match the repo"], "error": ["{n} files differ from the repo"]},
+        {
+            "ok": ["deployed files match the repo"],
+            "error": ["deploy host unreachable, nothing compared"],
+            "found": ["{n} files differ from the repo"],
+        },
     ),
 )
 
@@ -157,8 +162,12 @@ def generate(now: datetime | None = None, rng_seed: int = 7) -> list[Row]:
                 ts = now - timedelta(days=day, seconds=rng.randrange(60, 86_400))
                 failed = rng.random() < 0.04
                 status = "error" if failed else "ok"
-                summary = rng.choice(summaries[status]).format(n=rng.randrange(1, 40))
-                severity = "action" if failed else "clear"
+                # A clean run that still wants a look: yoman's DEFCON 4, beside a failure's 3.
+                found = not failed and "found" in summaries and rng.random() < 0.05
+                summary = rng.choice(summaries["found" if found else status]).format(
+                    n=rng.randrange(1, 40)
+                )
+                severity = "action" if failed or found else "clear"
                 rows.append(Row(ts, topic, task, status, severity, summary, _detail(topic, rng)))
 
                 if failed:

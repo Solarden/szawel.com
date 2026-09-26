@@ -91,9 +91,26 @@ def test_the_dashboard_puts_the_standing_alarm_and_the_quiet_unit_first(client):
     page = client.get(LOG).text
     needs_a_look = page.split("<h2>quiet")[0]
 
-    assert "DEFCON 1" in needs_a_look
+    assert "DEFCON 2" in needs_a_look
     assert f"certs / {seed.STALE_TASK}" in needs_a_look
     assert "stale" in needs_a_look
+
+
+def test_the_log_shows_every_row_level_of_the_five_level_scale(client):
+    page = client.get(LOG, params={"p": "log", "limit": 500}).text
+
+    for level in (2, 3, 4, 5):
+        assert f">DEFCON {level}</span>" in page, level
+
+    assert ">DEFCON 1</span>" not in page, "1 is a banner state, never a row"
+    assert 'class="pill sev-action lone">DEFCON 3<' in page, "a 3 must not look like a 4"
+
+
+@pytest.mark.parametrize("sev", ["open", "alarm", "action", "clear"])
+def test_no_severity_filter_returns_a_push_row(client, sev):
+    page = client.get(LOG, params={"p": "log", "sev": sev, "limit": 500}).text
+
+    assert '<span class="pill push">' not in page, sev
 
 
 def test_the_traffic_page_lists_every_device_and_names_the_unleased_one_by_address(client):
@@ -138,7 +155,7 @@ def test_a_stand_down_clears_the_alarm_for_that_visit_alone(client):
     everyone_else = client.get(LOG).text
 
     assert "no alarm standing" in own
-    assert "DEFCON 1" not in own.split("<h2>quiet")[0]
+    assert "DEFCON 2" not in own.split("<h2>quiet")[0]
     assert "stand down</button>" in everyone_else
 
 
