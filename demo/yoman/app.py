@@ -26,8 +26,14 @@ CASE_STUDY = "https://www.szawel.com/work/yoman.html"
 LIMIT_DEFAULT, LIMIT_MAX = 50, 500
 STATUSES = ("", "ok", "error", "push")
 SEVERITIES = ("", "open", "alarm", "action", "clear")
-SEV_DEFCON = {"alarm": "DEFCON 1", "action": "DEFCON 2", "clear": "DEFCON 3"}
-SEV_LABELS = {"": "all", "open": "DEFCON 1-2", **SEV_DEFCON}
+SEV_STORED = ("clear", "action", "alarm")
+SEV_LABELS = {
+    "": "all",
+    "open": "DEFCON 1-4",
+    "alarm": "DEFCON 2",
+    "action": "DEFCON 3-4",
+    "clear": "DEFCON 5",
+}
 
 NAV = (("", "dashboard"), ("log", "task log"), ("isp", "ISP"), ("net", "traffic"))
 NET_WINDOWS = (1, 7, 30)
@@ -50,6 +56,29 @@ TOPICS = sorted({row.topic for row in ROWS} | {"alert"})
 SESSION_TTL = timedelta(minutes=30)
 SESSION_CAP = 500
 SESSION_ID = re.compile(r"[A-Za-z0-9_-]{22}")
+
+
+def defcon(severity: str | None, status: str) -> str | None:
+    """yoman's pill rule: the real five-level scale, with `action` split by status."""
+    if severity not in SEV_STORED or status == "push":
+        return None
+
+    if severity == "action":
+        return "DEFCON 3" if status == "error" else "DEFCON 4"
+
+    return "DEFCON 2" if severity == "alarm" else "DEFCON 5"
+
+
+def sev_pill(severity: str | None, status: str) -> str:
+    """yoman's pill: the stored token as the class, plus `lone` so a 3 does not look like a 4."""
+    level = defcon(severity, status)
+
+    if not level:
+        return ""
+
+    lone = " lone" if level == "DEFCON 3" else ""
+
+    return f'<span class="pill sev-{severity}{lone}">{level}</span>'
 
 
 @dataclass(slots=True)
@@ -92,9 +121,12 @@ def _date(raw: str) -> str:
 def _matches(row: seed.Row, topic: str, status: str, sev: str, dfrom: str, dto: str) -> bool:
     day = f"{row.ts:%Y-%m-%d}"
 
+    # A push carries the ntfy priority, not a verdict, so no severity filter ever matches one.
+    if sev and row.status == "push":
+        return False
+
     if sev == "open":
-        # A push carries the ntfy priority, not a verdict, so it never counts as open.
-        if row.severity not in ("action", "alarm") or row.status == "push":
+        if row.severity not in ("action", "alarm"):
             return False
 
     elif sev and row.severity != sev:
@@ -195,7 +227,11 @@ def _alarm_strip(visit: Visit | None) -> str:
 
     if alarm:
         return (
-            f"<div class=toast><span class=lvl>DEFCON 1</span>"
+            # ponytail: always 2, by choice. yoman turns the banner to 1 once an alarm has stood
+            # unanswered for a day, and the demo's alarm does get that old - it is seeded 3 h before
+            # the process started. A public page reading "ignored" would say the wrong thing about a
+            # house nobody is running.
+            f"<div class=toast><span class=lvl>DEFCON 2</span>"
             f"<span class=what>{_esc(alarm.topic)} · {_esc(alarm.task)} · "
             f"{_esc(alarm.summary)}</span><span class=when>{_ts(alarm.ts)}</span>"
             f'<form method=post action="stand-down"><button type=submit>stand down</button></form>'
@@ -288,7 +324,7 @@ def render_dashboard(visit: Visit | None) -> str:
             continue
 
         pill = (
-            f'<span class="pill sev-{latest.severity}">{SEV_DEFCON[latest.severity]}</span>'
+            sev_pill(latest.severity, latest.status)
             if verdict in ("alarm", "action")
             else f'<span class="pill stale">{verdict}</span>'
         )
@@ -524,11 +560,7 @@ def render_log(
     body_rows = []
 
     for row in shown:
-        sev_cell = (
-            f'<span class="pill sev-{row.severity}">{SEV_DEFCON[row.severity]}</span>'
-            if row.severity in SEV_DEFCON and row.status != "push"
-            else ""
-        )
+        sev_cell = sev_pill(row.severity, row.status)
         detail = _esc(json.dumps(row.detail))
         body_rows.append(
             f'<tr class=logrow data-detail="{detail}"><td class=ts>{_ts(row.ts)}</td>'
@@ -612,7 +644,7 @@ def _stand_down(visit: Visit) -> RedirectResponse:
                 "yoman",
                 "push",
                 None,
-                "DEFCON 3 · alarm stood down",
+                "DEFCON 5 · alarm stood down",
                 {
                     "stood_down": f"{alarm.topic} · {alarm.task} · {alarm.summary}",
                     "by": "this visit",

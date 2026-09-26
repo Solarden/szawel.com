@@ -29,6 +29,7 @@ border:1px solid currentColor;white-space:nowrap}
 .pill.ok{color:var(--pos)}.pill.error{color:var(--neg)}.pill.skipped{color:var(--muted)}
 .pill.push{color:var(--accent)}
 .pill.sev-clear{color:var(--pos)}.pill.sev-action{color:var(--warn)}
+.pill.sev-action.lone{background:rgba(210,153,34,.14)}
 .pill.sev-alarm{color:var(--neg);background:rgba(240,104,107,.12)}
 .pill.stale{color:var(--warn)}
 .pager{display:flex;align-items:center;gap:.75rem;padding:.7rem 1.25rem;border-top:1px solid var(--line)}
