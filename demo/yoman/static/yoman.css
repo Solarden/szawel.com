@@ -1,31 +1,42 @@
-/* yoman's dark skin, copied from the real app. */
+/* skin:begin — the shared dark skin, generated from the owner's infra repo; edit it there, not here */
 :root{--bg:#0f1115;--panel:#1a1d24;--line:#2a2f3a;--fg:#e6e9ef;--muted:#9aa3b2;
 --accent:#4f8cff;--accent-strong:#3366cc;--field-border:#6b7280;--neg:#f0686b;--pos:#3fb950;
---warn:#d29922}
+--warn:#d29922;--sans:system-ui,-apple-system,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);color-scheme:dark;
-font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
-header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;
-border-bottom:1px solid var(--line);padding:.75rem 1.25rem}
+font-family:var(--sans);font-size:15px;line-height:1.5}
+header{border-bottom:1px solid var(--line)}
 header h1{margin:0;font-size:1rem}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:12px;text-align:center}
+label{color:var(--muted);font-size:13px}
+input,select,textarea,button{border:1px solid var(--field-border);border-radius:.375rem;
+background:var(--bg);color:var(--fg);font:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{cursor:pointer;border-color:var(--accent-strong);background:var(--accent-strong);color:#fff;font-weight:600}
+:where(button:not(:disabled)):hover{border-color:var(--accent);background:var(--accent)}
+button:disabled{opacity:.5;cursor:not-allowed}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid var(--line);text-align:left}
+th{font-size:13px;font-weight:600;color:var(--muted)}
+.panel{border:1px solid var(--line);border-radius:.5rem;background:var(--panel)}
+.muted{color:var(--muted)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.warn{color:var(--warn)}
+.pill{display:inline-block;padding:.05rem .4rem;border:1px solid currentColor;border-radius:.375rem;
+font-size:11px;font-weight:600;white-space:nowrap}
+.flash.error{border:1px solid var(--neg);border-radius:.375rem;background:#3a1c1e;color:#ffd5d6}
+/* skin:end */
+/* yoman's own rules, copied from the real app. */
+header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:.75rem 1.25rem}
 header .sub{color:var(--muted);font-size:12px}
 main{max-width:1200px;margin:0 auto;padding:1.25rem}
 form.filters{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem}
 .field{display:flex;flex-direction:column;gap:.35rem}
-label{color:var(--muted);font-size:13px}
-select,input,button{height:2.25rem;padding:0 .6rem;border-radius:.375rem;border:1px solid var(--field-border);
-background:var(--bg);color:var(--fg);font:inherit}
-select:focus,input:focus{outline:none;border-color:var(--accent)}
-button{cursor:pointer;border-color:var(--accent-strong);background:var(--accent-strong);color:#fff;font-weight:600}
-button:hover{border-color:var(--accent);background:var(--accent)}
-.panel{border:1px solid var(--line);border-radius:.5rem;background:var(--panel);overflow-x:auto}
-table{border-collapse:collapse;width:100%}
-th,td{border-bottom:1px solid var(--line);padding:.55rem .75rem;text-align:left;vertical-align:top}
-th{font-size:13px;font-weight:600;color:var(--muted)}
-td.ts{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;
-color:var(--muted);white-space:nowrap}
-.pill{display:inline-block;padding:.05rem .4rem;border-radius:.375rem;font-size:11px;font-weight:600;
-border:1px solid currentColor;white-space:nowrap}
+select,input,button{height:2.25rem;padding:0 .6rem}
+.panel{overflow-x:auto}
+th,td{padding:.55rem .75rem;vertical-align:top}
+td.ts{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
 .pill.ok{color:var(--pos)}.pill.error{color:var(--neg)}.pill.skipped{color:var(--muted)}
 .pill.push{color:var(--accent)}
 .pill.sev-clear{color:var(--pos)}.pill.sev-action{color:var(--warn)}
@@ -42,19 +53,17 @@ background:#2a1c1f}
 .toast .lvl{font-weight:700;color:var(--neg);white-space:nowrap;letter-spacing:.02em}
 .toast .what{flex:1;min-width:12rem;font-size:13px}
 .toast .when{color:var(--muted);font-size:12px;
-font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap}
+font-family:var(--mono);white-space:nowrap}
 .toast label{display:flex;align-items:center;gap:.4rem;font-size:13px;cursor:pointer}
 .toast.quiet{border-color:var(--line);background:var(--panel)}
 .toast.quiet .lvl{color:var(--pos)}
 .pager .cur{color:var(--fg);font-weight:600;font-size:13px}
 .pager .gap{color:var(--muted);font-size:13px}
-.muted{color:var(--muted)}
 tr.logrow{cursor:pointer}
 tr.logrow:hover td{background:rgba(79,140,255,.06)}
 td.exp{color:var(--muted);text-align:center;width:2rem}
-.flash.error{margin:1rem 0;border:1px solid var(--neg);background:#3a1c1e;color:#ffd5d6;
-padding:.6rem .9rem;border-radius:.375rem}
-footer{border-top:1px solid var(--line);padding:.9rem 1.25rem;text-align:center;color:var(--muted);font-size:12px}
+.flash.error{margin:1rem 0;padding:.6rem .9rem}
+footer{padding:.9rem 1.25rem}
 .modal[hidden]{display:none}
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:1rem;z-index:50}
 .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
@@ -78,7 +87,7 @@ nav a:hover,nav a.on{color:var(--accent)}
 .tile.bad{border-color:var(--neg)}.tile.bad .v{color:var(--neg)}
 .tile.good{border-color:var(--pos)}.tile.good .v{color:var(--pos)}
 .tile .k .pill{margin-left:.3rem}
-td.num,th.num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+td.num,th.num{font-family:var(--mono);
 font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 td.num.bad{color:var(--neg)}
 h2{font-size:.85rem;color:var(--muted);font-weight:600;margin:1.4rem 0 .5rem}
