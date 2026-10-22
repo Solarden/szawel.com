@@ -262,7 +262,7 @@ def _page(title: str, body: str, visit: Visit | None, current: str = "") -> str:
 <div class=demo>Demo of yoman, the audit-trail dashboard from
 <a href="{CASE_STUDY}">this case study</a>.
 Synthetic data, regenerated on every restart.{kept}</div>
-<header><h1>yoman</h1><span class=sub>task_log · demo house</span>
+<header><p class=brand>yoman</p><span class=sub>task_log · demo house</span>
 {_nav(current)}</header>
 <main>{_alarm_strip(visit)}{body}</main>
 <div id=modal class=modal hidden><div class=modal-backdrop></div>
@@ -365,7 +365,7 @@ def render_dashboard(visit: Visit | None) -> str:
     return _page(
         "dashboard",
         f"""<div class=tiles>{hosts}</div>
-<h2>needs a look ({len(exceptions)})</h2>
+<h1>needs a look ({len(exceptions)})</h1>
 <div class=panel><table>
 <thead><tr><th>what</th><th>state</th><th>last run</th><th>said</th></tr></thead>
 <tbody>{rows}</tbody></table></div>
@@ -393,7 +393,7 @@ def render_net(days: int, visit: Visit | None) -> str:
 
     return _page(
         "traffic",
-        f"""<form class=filters method=get action="">
+        f"""<h1 class=sr-only>traffic per device</h1><form class=filters method=get action="">
 <input type=hidden name=p value=net>
 <div class=field><label for=days>window</label><select id=days name=days>{options}</select></div>
 <div class=field><button type=submit>apply</button></div>
@@ -486,7 +486,7 @@ def render_isp(month: str, visit: Visit | None) -> str:
 
     return _page(
         "ISP",
-        f"""<form class=filters method=get action="">
+        f"""<h1 class=sr-only>ISP, {_esc(month)}</h1><form class=filters method=get action="">
 <input type=hidden name=p value=isp>
 <div class=field><label for=month>month</label><select id=month name=month>{options}</select></div>
 <div class=field><button type=submit>show</button></div>
@@ -574,7 +574,7 @@ def render_log(
 
     return _page(
         "task log",
-        f"""<form class=filters method=get action="">
+        f"""<h1 class=sr-only>task log</h1><form class=filters method=get action="">
 <input type=hidden name=p value=log>
 <div class=field><label for=topic>topic</label>
 <select id=topic name=topic>{_options([""] + TOPICS, topic)}</select></div>
