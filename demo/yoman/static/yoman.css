@@ -1,31 +1,45 @@
 /* skin:begin — the shared dark skin, generated from the owner's infra repo; edit it there, not here */
 :root{--bg:#0f1115;--panel:#1a1d24;--line:#2a2f3a;--fg:#e6e9ef;--muted:#9aa3b2;
 --accent:#4f8cff;--accent-strong:#3366cc;--field-border:#6b7280;--neg:#f0686b;--pos:#3fb950;
---warn:#d29922;--sans:system-ui,-apple-system,sans-serif;
+--warn:#d29922;--neg-surface:#3a1c1e;--on-neg-surface:#ffd5d6;
+--pos-surface:#16321f;--on-pos-surface:#b9f6ca;
+--chart-1:#3987e5;--chart-2:#d95926;--chart-3:#1fa4ad;--chart-4:#c98500;
+--chart-5:#c4549a;--chart-6:#3e9a4a;--chart-7:#9085e9;--chart-8:#e66767;
+--sans:system-ui,-apple-system,sans-serif;
 --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);color-scheme:dark;
-font-family:var(--sans);font-size:15px;line-height:1.5}
+font-family:var(--sans);font-size:15px;line-height:1.5;overflow-wrap:break-word}
 header{border-bottom:1px solid var(--line)}
-header h1{margin:0;font-size:1rem}
+.brand{margin:0;font-size:1rem;font-weight:700}
+a.brand,.brand a{color:inherit;text-decoration:none}
+h1,h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 footer{border-top:1px solid var(--line);color:var(--muted);font-size:12px;text-align:center}
+a{color:var(--accent)}
 label{color:var(--muted);font-size:13px}
 input,select,textarea,button{border:1px solid var(--field-border);border-radius:.375rem;
 background:var(--bg);color:var(--fg);font:inherit}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+::placeholder{color:var(--muted);opacity:1}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button{cursor:pointer;border-color:var(--accent-strong);background:var(--accent-strong);color:#fff;font-weight:600}
-:where(button:not(:disabled)):hover{border-color:var(--accent);background:var(--accent)}
+:where(button:not(:disabled)):hover{border-color:var(--accent);background:#2e62c4}
 button:disabled{opacity:.5;cursor:not-allowed}
+button.quiet{border-color:var(--field-border);background:var(--bg);color:var(--fg)}
+button.quiet:not(:disabled):hover{border-color:var(--accent);background:var(--panel)}
+button.linkish{border:0;background:none;color:var(--muted);font-size:13px;font-weight:400;text-decoration:underline}
+button.linkish:not(:disabled):hover{background:none;color:var(--fg)}
 table{border-collapse:collapse;width:100%}
 th,td{border-bottom:1px solid var(--line);text-align:left}
 th{font-size:13px;font-weight:600;color:var(--muted)}
 .panel{border:1px solid var(--line);border-radius:.5rem;background:var(--panel)}
 .muted{color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.warn{color:var(--warn)}
 .pill{display:inline-block;padding:.05rem .4rem;border:1px solid currentColor;border-radius:.375rem;
-font-size:11px;font-weight:600;white-space:nowrap}
-.flash.error{border:1px solid var(--neg);border-radius:.375rem;background:#3a1c1e;color:#ffd5d6}
+font-size:12px;font-weight:600;white-space:nowrap}
+.flash.error{border:1px solid var(--neg);border-radius:.375rem;background:var(--neg-surface);color:var(--on-neg-surface)}
+.flash.ok{border:1px solid var(--pos);border-radius:.375rem;background:var(--pos-surface);color:var(--on-pos-surface)}
 /* skin:end */
 /* yoman's own rules, copied from the real app. */
 header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:.75rem 1.25rem}
@@ -90,7 +104,8 @@ nav a:hover,nav a.on{color:var(--accent)}
 td.num,th.num{font-family:var(--mono);
 font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 td.num.bad{color:var(--neg)}
-h2{font-size:.85rem;color:var(--muted);font-weight:600;margin:1.4rem 0 .5rem}
+h1,h2{margin:1.4rem 0 .5rem}
+main > :first-child,main > h1.sr-only + *{margin-top:0}
 .note{color:var(--muted);font-size:12px;margin:.5rem 0 0}
 
 .demo{background:#1f2a14;border-bottom:1px solid #3d5a1c;color:#d9f5b0;font-size:13px;padding:.5rem 1.25rem}
