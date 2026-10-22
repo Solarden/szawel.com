@@ -15,6 +15,7 @@ __pycache__/
 internal_docs
 .claude/
 CLAUDE.md
+AGENTS.md
 .githooks/
 
 # The server reads its config from outside the checkout.
