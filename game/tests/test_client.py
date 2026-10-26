@@ -151,3 +151,12 @@ def test_the_client_is_syntactically_valid():
     # Nothing else in this repo parses JS: ruff is Python-only and the hooks only fix whitespace,
     # so without this a syntax error reaches the live landing page with no gate firing.
     subprocess.run([node, "--check", str(CLIENT / "widget.js")], check=True)
+
+
+def test_the_board_works_from_the_keyboard():
+    node = shutil.which("node")
+
+    if node is None:
+        pytest.skip("node is not installed")
+
+    subprocess.run([node, str(Path(__file__).with_name("widget_keyboard.js"))], check=True)
