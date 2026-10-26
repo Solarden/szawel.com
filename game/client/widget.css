@@ -42,7 +42,7 @@
      while they share a font size — that is why both sit inside .logwrap and neither sets one. */
   --cols: 3ch 12ch 6ch 8ch 14ch auto;
   /* --dimmer reads 2.43:1 on the log, under AA, and seq and ts carry the "nothing was dropped"
-     claim. ponytail: its own token, since --dimmer's other uses are dots and the dead LED. */
+     claim. ponytail: its own token, since --dimmer's only other use is the dead LED. */
   --log-dim: #909391;
 }
 
@@ -119,6 +119,10 @@
   animation: pop .5s cubic-bezier(.2, .8, .2, 1) both;
 }
 
+/* The keyboard moves focus onto the board and between tiles, and the browser's default ring is
+   near invisible on this ground. Here rather than left to the host page: the dev page has none. */
+.board:focus-visible, .tile:focus-visible { outline: 2px solid var(--you); outline-offset: 2px }
+
 /* Only a tile that could still be taken, and only its background: an owned or water tile
    carries information hover must not repaint, and the border belongs to legality. */
 .board:not(.inert) .tile:not(.you):not(.server):not(.water):hover { background: var(--tile-hi); transform: translateY(-1px) }
@@ -127,11 +131,14 @@
 .tile.legal { border-color: rgba(182, 255, 58, .45); box-shadow: inset 0 0 0 1px rgba(182, 255, 58, .12) }
 .tile.you { background: linear-gradient(145deg, #9be028, #c6ff52); border-color: #d8ff7a; box-shadow: 0 0 14px -4px var(--you) }
 .tile.server { background: linear-gradient(145deg, #e9722c, #ff9a52); border-color: #ffb07a; box-shadow: 0 0 14px -4px var(--server) }
-/* The second channel. Your tiles and the opponent's sit 1.89:1 apart in luminance, so hue
-   is doing all the work until the dot's shape tells them apart. */
-.tile .dot { position: absolute; inset: 0; margin: auto; width: 5px; height: 5px; border-radius: 99px; background: var(--dimmer) }
+/* The second channel. Your tiles and the opponent's sit 1.94:1 apart in luminance, and to a
+   deuteranope both read as yellow, so the dot's shape tells them apart: round is yours, a
+   diamond is the opponent's. A rounded square was too close to a circle at this size. */
+/* --dim, not --dimmer: the dot is how a free tile shows at all (the tile itself is 1.1:1 on the
+   pane), and step 3 asks the visitor to find one. */
+.tile .dot { position: absolute; inset: 0; margin: auto; width: 5px; height: 5px; border-radius: 99px; background: var(--dim) }
 .tile.you .dot, .tile.server .dot { width: 7px; height: 7px; background: rgba(0, 0, 0, .55) }
-.tile.server .dot { border-radius: 2px }
+.tile.server .dot { border-radius: 0; transform: rotate(45deg) }
 .tile.water .dot { width: 9px; height: 2px; border-radius: 1px; background: var(--cyan); opacity: .45 }
 /* Points get a channel of their own, a ring that survives either owner's colour. */
 .tile.valuable .dot { outline: 1.5px solid var(--dim); outline-offset: 2px }
@@ -151,8 +158,8 @@
 .turnpill.thinking { border-color: var(--server); animation: blink 1.2s infinite }
 
 .conn { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dim); margin-bottom: 4px }
-.led { width: 7px; height: 7px; border-radius: 99px; background: var(--you); box-shadow: 0 0 8px var(--you); animation: blink 2s infinite }
-.led.off { background: var(--dimmer); box-shadow: none; animation: none }
+.led { width: 7px; height: 7px; border-radius: 99px; background: var(--you); box-shadow: 0 0 8px var(--you) }
+.led.off { background: var(--dimmer); box-shadow: none }
 .endpoint { font-size: 13.5px; color: var(--cyan); opacity: .8; word-break: break-all; margin-bottom: 16px }
 
 .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px }
@@ -210,10 +217,11 @@
 @keyframes slidein { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: none } }
 @keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
 
-/* The LED blinks forever and the board pops in 48 tiles at once, on a page a visitor
-   did not open to watch an animation. */
+/* The board pops in 48 tiles at once, on a page a visitor did not open to watch an animation.
+   The LED does not blink at all: a light flashing for as long as the socket is open is the
+   moving content WCAG 2.2.2 says a visitor must be able to stop. */
 @media (prefers-reduced-motion: reduce) {
-  .tile, .ln, .led, .turnpill { animation: none }
+  .tile, .ln, .turnpill { animation: none }
   .tile { transition: none }
 }
 
@@ -232,4 +240,7 @@
   .loghead .row > :nth-child(-n+2), .ln > :nth-child(-n+2) { display: none }
   .loghead .row > :last-child, .ln .ou { grid-column: 1 / -1 }
   .ln { padding-bottom: 4px; border-bottom: 1px solid var(--line) }
+  /* Three metrics share 300px: at the full size a value like "0.208 ms" breaks its unit onto a
+     second line and the three boxes stop lining up. */
+  .metric .mn { font-size: 16px; white-space: nowrap }
 }

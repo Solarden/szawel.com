@@ -64,6 +64,11 @@
   var shown = null;
   var greeted = false;
   var resultEl = null;
+  // The one tile in the tab order: the board is a single stop, and the arrow keys move inside it.
+  var cursor = 0;
+  // Set by the controls that remove themselves while focused (start, play again), so the board
+  // takes the focus instead of it falling back to the top of the page.
+  var takeFocus = false;
 
   // Every line below is written by something that happened. Nothing is on a timer.
 
@@ -203,11 +208,42 @@
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           move(index);
+
+          return;
+        }
+
+        var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -state.cols, ArrowDown: state.cols }[event.key];
+        var next = index + (step || 0);
+        // Left and right stop at the row's ends rather than wrapping onto the next row.
+        var sameRow = Math.abs(step) !== 1 || Math.floor(next / state.cols) === Math.floor(index / state.cols);
+
+        if (!step) {
+          return;
+        }
+
+        // Prevented at the edge too: an arrow that cannot move would otherwise scroll the page.
+        event.preventDefault();
+
+        if (next >= 0 && next < tiles.length && sameRow) {
+          aim(next);
+          tiles[next].focus();
         }
       });
       boardEl.appendChild(tile);
       tiles.push(tile);
     });
+
+    cursor = firstLegal();
+  }
+
+  function firstLegal() {
+    return legal.size ? Math.min.apply(null, Array.from(legal)) : cursor;
+  }
+
+  function aim(index) {
+    var inert = boardEl.classList.contains('inert');
+    cursor = index;
+    tiles.forEach(function (tile, i) { tile.tabIndex = i === cursor && !inert ? 0 : -1; });
   }
 
   // The board says whose a tile is in colour; this says it in words.
@@ -278,6 +314,8 @@
     declined = null;
     signer = null;
     pending.clear();
+    takeFocus = true;
+    boardEl.focus();
     resultEl.remove();
     resultEl = null;
     line('client', 'SOCKET', '\u00b7', 'CLOSED \u00b7 leaving the decided match');
@@ -301,7 +339,26 @@
     el('sServer').textContent = state.scores.server;
     shown = state;
     pill();
-    boardEl.classList.toggle('inert', state.over || !live);
+    settle(state.over || !live);
+
+    if (takeFocus && !state.over && live) {
+      takeFocus = false;
+      aim(firstLegal());
+      tiles[cursor].focus();
+    }
+  }
+
+  // An inert board leaves the tab order and says so, rather than offering 48 buttons that can
+  // only be refused.
+  function settle(inert) {
+    boardEl.classList.toggle('inert', inert);
+    tiles.forEach(function (tile) {
+      // Only on a change: a screen reader may announce a rewrite of the focused tile's state.
+      if (tile.getAttribute('aria-disabled') !== String(inert)) {
+        tile.setAttribute('aria-disabled', String(inert));
+      }
+    });
+    aim(cursor);
   }
 
   function hex(buffer) {
@@ -562,7 +619,7 @@
     el('led').classList.add('off');
     el('connTxt').textContent = 'disconnected';
     pill();
-    boardEl.classList.add('inert');
+    settle(true);
     line('client', 'SOCKET', '·', declined
       ? 'CLOSED · the server declined the session: ' + declined
       : 'CLOSED · the server is gone, and this client has no rules to carry on with. Reload to retry');
@@ -606,6 +663,8 @@
   // Not on load: a socket for every visitor costs a connection and shows the server an address
   // nobody offered, on a page whose note says the connection starts only when you press this.
   el('start').addEventListener('click', function () {
+    takeFocus = true;
+    boardEl.focus();
     this.remove();
     connect();
   });

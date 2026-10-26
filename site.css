@@ -11,7 +11,8 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-main { padding: 48px 0 }
+/* No bottom padding: the footer, outside <main> as the page's contentinfo, carries it. */
+main { padding: 48px 0 0 }
 
 .wrap { max-width: 1400px; margin: 0 auto; padding: 0 22px }
 
@@ -32,16 +33,18 @@ a:hover { border-bottom-color: var(--you) }
     color: var(--dim);
 }
 
-h1 { margin: 16px 0 0; font-size: 46px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800 }
-h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -.01em }
-/* The headline is a sentence, not a slogan: at 46px on a phone it pushes both calls to
-   action below the first screen. */
-@media (max-width: 600px) { h1 { font-size: 34px } header .lead { font-size: 19px } }
+/* balance: a two-line headline otherwise leaves one word alone on the second line. */
+h1 { margin: 16px 0 0; font-size: 46px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800; text-wrap: balance }
+/* h3 on the apex, where each section's label is its h2; h2 on a case study, which has no labels. */
+h2, h3 { margin: 0 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -.01em }
 
 /* Scoped: .lead is also the widget's leaderboard row, and a bare rule here reaches
    into it for every property the widget's own rule does not set. */
 header .lead { margin: 16px 0 0; color: var(--dim); font-size: 22px; max-width: var(--prose) }
 header .lead b { color: var(--ink); font-weight: 700 }
+/* The headline is a sentence, not a slogan: at full size on a phone it and the lead push both calls
+   to action below the first screen. After the base rules, or they win on source order. */
+@media (max-width: 600px) { h1 { font-size: 34px } header .lead { font-size: 19px } }
 
 .background { margin-top: 20px; font-family: var(--mono); font-size: 14px; color: var(--dim) }
 
@@ -68,6 +71,7 @@ section { margin-top: 48px }
     letter-spacing: .18em;
     text-transform: uppercase;
     color: var(--dim);
+    font-weight: 400;
     margin-bottom: 16px;
 }
 
@@ -137,7 +141,7 @@ section { margin-top: 48px }
 
 footer {
     margin-top: 48px;
-    padding-top: 24px;
+    padding: 24px 0 48px;
     border-top: 1px solid var(--line);
     color: var(--dim);
     font-size: 15px;
@@ -147,10 +151,14 @@ footer p { margin-top: 6px }
 footer b { color: var(--ink); font-weight: 700 }
 
 /* Selected work: a card is the whole link, so the target is the card and not a word in it. */
-a.work { display: block; border-bottom: 1px solid var(--line2) }
+/* A column, so the link line sits on the card's floor and lines up across a row. */
+a.work { display: flex; flex-direction: column; border-bottom: 1px solid var(--line2) }
 a.work:hover { border-color: var(--you); background: var(--tile) }
-a.work .n { font-family: var(--disp); font-weight: 800; font-size: 30px; color: var(--you); letter-spacing: -.02em }
-a.work .more { margin-top: 12px; font-family: var(--mono); font-size: 14px; color: var(--ink) }
+/* The measured figure: on a work card, and under a case study's headline, where a phone reader
+   would otherwise meet it only after a screen and a half of Problem and Action. */
+a.work .n, header .n { font-family: var(--disp); font-weight: 800; font-size: 30px; color: var(--you); letter-spacing: -.02em }
+header .n { margin-top: 12px; line-height: 1.2 }
+a.work .more { margin-top: auto; padding-top: 12px; font-family: var(--mono); font-size: 14px; color: var(--ink) }
 /* The invitation beside the case studies: shaped like one, quieter than one. */
 a.work.ghost { border-style: dashed; background: transparent }
 

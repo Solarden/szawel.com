@@ -250,7 +250,8 @@ def _alarm_strip(visit: Visit | None) -> str:
 
 def _page(title: str, body: str, visit: Visit | None, current: str = "") -> str:
     kept = (
-        " This visit's stand-down lives in the page address and is forgotten after 30 idle minutes."
+        " Your stand-down stays in this page's address for"
+        f" {SESSION_TTL.seconds // 60} idle minutes."
         if visit
         else ""
     )
@@ -259,9 +260,8 @@ def _page(title: str, body: str, visit: Visit | None, current: str = "") -> str:
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>{_esc(title)} — yoman demo</title>
 <link rel=stylesheet href="{BASE}/static/yoman.css"></head><body>
-<div class=demo>Demo of yoman, the audit-trail dashboard from
-<a href="{CASE_STUDY}">this case study</a>.
-Synthetic data, regenerated on every restart.{kept}</div>
+<div class=demo><a href="{CASE_STUDY}">&larr; The case study</a> &middot;
+Live demo on synthetic data, regenerated on every restart.{kept}</div>
 <header><p class=brand>yoman</p><span class=sub>task_log · demo house</span>
 {_nav(current)}</header>
 <main>{_alarm_strip(visit)}{body}</main>

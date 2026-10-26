@@ -172,11 +172,11 @@ def _page(title: str, body: str, current: str = "") -> str:
 <title>{_esc(title)} — target-analyzer demo</title>
 <link rel=stylesheet href="{BASE}/skin/yoman.css">
 <link rel=stylesheet href="{BASE}/static/target.css"></head><body>
-<div class=demo>Demo of target-analyzer, photo-based scoring of paper targets, from
-<a href="{CASE_STUDY}">this case study</a>. Synthetic targets and readings. On the held-out
-target, cv_blob and yolo at 0.10 and 0.25 are matched to the real measured run; every other number
-is illustrative.</div>
-<header><h1>target-analyzer</h1><span class=sub>demo range</span><nav>{nav}</nav></header>
+<div class=demo><a href="{CASE_STUDY}">&larr; The case study</a> &middot;
+Live demo on synthetic data. On the held-out target, cv_blob, yolo &ge; 0.10 and yolo &ge; 0.25
+match the measured run.</div>
+<header><p class=brand><a href="{BASE}/">target-analyzer</a></p>
+<span class=sub>demo range</span><nav>{nav}</nav></header>
 <main>{body}</main>
 </body></html>"""
 
@@ -232,7 +232,8 @@ def render_trend() -> str:
 
     return _page(
         "trend",
-        f"""<div class=charts>
+        f"""<h1>Trend</h1>
+<div class=charts>
 {_chart(sessions, [r.avg for r in scores], "average ring per hole", "", 10)}
 {_chart(sessions, [r.mean_radius_mm for r in scores], "mean radius, mm", " mm", top_radius)}
 </div>
@@ -252,7 +253,7 @@ def render_session(session: seed.Session) -> str:
 
     return _page(
         _title(session),
-        f"""<h2>{_esc(_title(session))}</h2>
+        f"""<h1>{_esc(_title(session))}</h1>
 <div class="panel solo">{_target_svg(session.truth, f"{result.n} holes", result)}{_metrics(result)}
 <p class=note>Read by hand, then confirmed ·
 <a href="{BASE}/compare/{session.id}">compare with the detectors</a></p></div>
@@ -297,7 +298,7 @@ def render_compare(session: seed.Session, conf: float) -> str:
 
     return _page(
         f"compare · {_title(session)}",
-        f"""<h2>{_esc(_title(session))}</h2>
+        f"""<h1>{_esc(_title(session))}</h1>
 <div class=panel><table>{head}<tbody>
 <tr><td>cv_blob</td>{_cells(session.cv_blob, session.truth)}</tr>
 <tr class=on><td>yolo ≥ {conf:.2f}</td>{_cells(yolo, session.truth)}</tr>
